@@ -2,19 +2,27 @@
 // programming language.
 package token
 
-// A Token represent a lexical token of the Go programming language. There are
-// four classes of tokens:
+// A Token represents a lexical token of the Go programming language.
+type Token struct {
+	// The token type.
+	Kind
+	// The string value of the token.
+	Val string
+}
+
+// Kind is the set of lexical token types of the Go programming language. There
+// are four classes of tokens:
 //    * identifiers
 //    * keywords
 //    * operators and delimiters
 //    * literals
-type Token int
+type Kind int
 
-// List of tokens.
+// Token types.
 const (
 	// Special tokens.
-	EOF     Token = iota // end of file.
-	Comment              // line comment or general comment.
+	EOF     Kind = iota // end of file.
+	Comment             // line comment or general comment.
 
 	// Identifiers.
 	Ident // main
@@ -125,20 +133,18 @@ const (
 	String // "abc"
 )
 
-// IsKeyword returns true if the provided token is a keyword, and false
-// otherwise.
-func (tok Token) IsKeyword() bool {
-	return Break <= tok && tok <= Var
+// IsKeyword returns true if kind is a keyword, and false otherwise.
+func (kind Kind) IsKeyword() bool {
+	return Break <= kind && kind <= Var
 }
 
-// IsOperator returns true if the provided token is an operator or a
-// deliminator, and false otherwise.
-func (tok Token) IsOperator() bool {
-	return Not <= tok && tok <= Ellipsis
+// IsOperator returns true if kind is an operator or a deliminator, and false
+// otherwise.
+func (kind Kind) IsOperator() bool {
+	return Not <= kind && kind <= Ellipsis
 }
 
-// IsLiteral returns true if the provided token is a literal, and false
-// otherwise.
-func (tok Token) IsLiteral() bool {
-	return Int <= tok && tok <= String
+// IsLiteral returns true if kind is a literal, and false otherwise.
+func (kind Kind) IsLiteral() bool {
+	return Int <= kind && kind <= String
 }
