@@ -10,8 +10,8 @@ type Token struct {
 	Val string
 }
 
-// Kind is the set of lexical token types of the Go programming language. There
-// are four classes of tokens:
+// Kind is the set of lexical token types of the Go programming language. It
+// contains four classes of tokens:
 //    * identifiers
 //    * keywords
 //    * operators and delimiters
