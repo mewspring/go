@@ -8,6 +8,7 @@ package lexer
 
 import (
 	"log"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/mewlang/go/token"
@@ -42,6 +43,8 @@ type lexer struct {
 	width int
 	// A slice of scanned tokens.
 	tokens []token.Token
+	// Index to the first token of the current line.
+	line int
 }
 
 // lex lexes the input by repeatedly executing the active state function until
@@ -53,9 +56,17 @@ func (l *lexer) lex() {
 	}
 }
 
-// emit emits a token of the provided token type and advances the token start
+// emit emits a token of the specified token type and advances the token start
 // position.
 func (l *lexer) emit(kind token.Kind) {
+	if kind == token.EOF {
+		if l.pos < len(l.input) {
+			log.Fatalf("lexer.lexer.emit: unexpected eof; pos %d < len(input) %d.\n", l.pos, len(l.input))
+		}
+		if l.start != l.pos {
+			log.Fatalf("lexer.lexer.emit: invalid eof; pending input %q not handled.\n", l.input[l.start:])
+		}
+	}
 	tok := token.Token{
 		Kind: kind,
 		Val:  l.input[l.start:l.pos],
@@ -92,9 +103,44 @@ func (l *lexer) peek() (r rune) {
 // next.
 func (l *lexer) backup() {
 	if l.width == 0 {
-		// TODO(u): Handle eof elsewhere so we never hit this case.
 		log.Fatalln("lexer.lexer.backup: invalid width; no matching call to next.")
 	}
 	l.pos -= l.width
 	l.width = 0
+}
+
+// accept consumes the next rune if it's from the valid set. It returns true if
+// a rune was consumed and false otherwise.
+func (l *lexer) accept(valid string) bool {
+	r := l.next()
+	if r == eof {
+		return false
+	}
+	if strings.IndexRune(valid, r) == -1 {
+		l.backup()
+		return false
+	}
+	return true
+}
+
+// acceptRun consumes a run of runes from the valid set. It returns true if a
+// rune was consumed and false otherwise.
+func (l *lexer) acceptRun(valid string) bool {
+	consumed := false
+	for l.accept(valid) {
+		consumed = true
+	}
+	return consumed
+}
+
+// ignore ignores any pending input read since the last token.
+func (l *lexer) ignore() {
+	l.start = l.pos
+}
+
+// ignoreRun ignores a run of valid runes.
+func (l *lexer) ignoreRun(valid string) {
+	if l.acceptRun(valid) {
+		l.ignore()
+	}
 }
