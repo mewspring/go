@@ -16,7 +16,7 @@ type Token struct {
 //    * keywords
 //    * operators and delimiters
 //    * literals
-type Kind int
+type Kind uint8
 
 // Token types.
 const (
