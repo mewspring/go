@@ -47,6 +47,8 @@ func lexToken(l *lexer) stateFn {
 		return lexDivOrComment
 	case '!':
 		return lexNot
+	case '<':
+		return lexLessArrowOrShl
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -72,17 +74,17 @@ func lexDivOrComment(l *lexer) stateFn {
 	r := l.next()
 	switch r {
 	case '=':
-		// Division assignment operator (/=)
+		// Division assignment operator (/=).
 		l.emit(token.DivAssign)
 		return lexToken
 	case '/':
 		// Line comment (//).
 		return lexLineComment
 	case '*':
-		// General comment (/*)
+		// General comment (/*).
 		return lexGeneralComment
 	default:
-		// Division operator (/)
+		// Division operator (/).
 		l.backup()
 		l.emit(token.Div)
 		return lexToken
@@ -137,12 +139,41 @@ func lexNot(l *lexer) stateFn {
 	r := l.next()
 	switch r {
 	case '=':
-		// Not equal comparison operator (!=)
+		// Not equal comparison operator (!=).
 		l.emit(token.Neq)
 	default:
 		// Logical not operator (!).
 		l.backup()
 		l.emit(token.Not)
+	}
+	return lexToken
+}
+
+// lexLessArrowOrShl lexes a less than comparison operator (<), a less than or
+// equal comparison operator (<=), a left shift operator (<<), a left shift
+// assignment operator (<<=), or a channel communication operator (<-). A
+// less-than sign character (<) has already been consumed.
+func lexLessArrowOrShl(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '-':
+		// Channel communication operator (<-).
+		l.emit(token.Arrow)
+	case '<':
+		if l.accept("=") {
+			// Left shift assignment operator (<<=).
+			l.emit(token.ShlAssign)
+		} else {
+			// Left shift operator (<<).
+			l.emit(token.Shl)
+		}
+	case '=':
+		// Less than or equal comparison operator (<=).
+		l.emit(token.Lte)
+	default:
+		// Less-than comparison operator (<).
+		l.backup()
+		l.emit(token.Lt)
 	}
 	return lexToken
 }
@@ -154,7 +185,7 @@ func lexAddOrInc(l *lexer) stateFn {
 	r := l.next()
 	switch r {
 	case '=':
-		// Addition assignment operator (+=)
+		// Addition assignment operator (+=).
 		l.emit(token.AddAssign)
 	case '+':
 		// Increment statement operator (++).
@@ -175,7 +206,7 @@ func lexSubOrDec(l *lexer) stateFn {
 	r := l.next()
 	switch r {
 	case '=':
-		// Subtraction assignment operator (-=)
+		// Subtraction assignment operator (-=).
 		l.emit(token.SubAssign)
 	case '-':
 		// Decrement statement operator (--).
