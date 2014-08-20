@@ -22,6 +22,7 @@ func main() {
 
 // lex tokenizes the contents of the provided file.
 func lex(path string) error {
+	log.Println("Lexing:", path)
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
