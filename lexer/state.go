@@ -7,14 +7,22 @@ import (
 	"github.com/mewlang/go/token"
 )
 
+const (
+	// whitespace specifies the white space characters (except newline), which
+	// include spaces (U+0020), horizontal tabs (U+0009), and carriage returns
+	// (U+000D).
+	whitespace = " \t\r"
+	// decimal specifies the decimal digit characters.
+	decimal = "0123456789"
+	// octal specifies the octal digit characters.
+	octal = "01234567"
+	// hex specifies the hexadecimal digit characters.
+	hex = "0123456789ABCDEFabcdef"
+)
+
 // A stateFn represents the state of the lexer as a function that returns a
 // state function.
 type stateFn func(l *lexer) stateFn
-
-// whitespace specifies the white space characters (except newline), which
-// include spaces (U+0020), horizontal tabs (U+0009), and carriage returns
-// (U+000D).
-const whitespace = " \t\r"
 
 // lexToken lexes a token of the Go programming language. It is the initial
 // state function of the lexer.
@@ -30,6 +38,9 @@ func lexToken(l *lexer) stateFn {
 		return lexAddOrInc
 	case '-':
 		return lexSubOrDec
+	case '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		l.backup()
+		return lexDotOrNumber
 	case '"':
 		return lexString
 	case '`':
@@ -155,6 +166,63 @@ func lexSubOrDec(l *lexer) stateFn {
 		l.backup()
 		l.emit(token.Sub)
 	}
+	return lexToken
+}
+
+// lexDotOrNumber lexes a dot delimiter (.), or a number (123, 0x7B, 0173, .123,
+// 123.45, 1e-15, 2i).
+func lexDotOrNumber(l *lexer) stateFn {
+	// Integer part.
+	var kind token.Kind
+	if l.accept("0") {
+		kind = token.Int
+		// Early return for hexadecimal.
+		if l.accept("xX") {
+			if !l.acceptRun(hex) {
+				return l.errorf("malformed hexadecimal constant")
+			}
+			l.emit(token.Int)
+			return lexToken
+		}
+	}
+	if l.acceptRun(decimal) {
+		kind = token.Int
+	}
+
+	// Decimal point.
+	if l.accept(".") {
+		if kind == token.Int {
+			kind = token.Float
+		} else {
+			kind = token.Dot
+		}
+	}
+
+	// Fraction part.
+	if l.acceptRun(decimal) {
+		kind = token.Float
+	}
+
+	// Early return for dot delimiter.
+	if kind == token.Dot {
+		l.emit(token.Dot)
+		return lexToken
+	}
+
+	// Exponent part.
+	if l.accept("eE") {
+		l.accept("+-")
+		if !l.acceptRun(decimal) {
+			return l.errorf("malformed exponent of floating-point constant")
+		}
+	}
+
+	// Imaginary.
+	if l.accept("i") {
+		kind = token.Imag
+	}
+
+	l.emit(kind)
 	return lexToken
 }
 

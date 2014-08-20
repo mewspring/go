@@ -113,7 +113,7 @@ const (
 	Inc // ++
 	Dec // --
 
-	// Deliminators.
+	// Delimiters.
 	Lparen    // (
 	Lbrack    // [
 	Lbrace    // {
@@ -139,7 +139,7 @@ func (kind Kind) IsKeyword() bool {
 	return Break <= kind && kind <= Var
 }
 
-// IsOperator returns true if kind is an operator or a deliminator, and false
+// IsOperator returns true if kind is an operator or a delimiter, and false
 // otherwise.
 func (kind Kind) IsOperator() bool {
 	return Not <= kind && kind <= Ellipsis
