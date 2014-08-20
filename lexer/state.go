@@ -1,10 +1,6 @@
 package lexer
 
-import (
-	"log"
-
-	"github.com/mewlang/go/token"
-)
+import "github.com/mewlang/go/token"
 
 // A stateFn represents the state of the lexer as a function that returns a
 // state function.
@@ -23,14 +19,73 @@ func lexToken(l *lexer) stateFn {
 
 	r := l.next()
 	switch r {
-	case '\n', eof:
-		return lexAutoSemicolon
+	case '/':
+		return lexDivOrComment
+	case '\n':
+		l.ignore()
+		insertSemicolon(l)
+		// Update the index to the first token of the current line.
+		l.line = len(l.tokens)
+		return lexToken
+	case eof:
+		insertSemicolon(l)
+		// Emit an EOF and terminate the lexer with a nil state function.
+		l.emit(token.EOF)
+		return nil
 	}
 
 	panic("not yet implemented.")
 }
 
-// lexAutoSemicolon inserts a semicolon if the correct conditions have been met.
+// lexDivOrComment lexes a division operator (/), a division assignment operator
+// (/=), a line comment (//), or a general comment (/*). A slash character ('/')
+// has already been consumed.
+func lexDivOrComment(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Division assignment operator (/=)
+		l.emit(token.DivAssign)
+		return lexToken
+	case '/':
+		// Line comment (//).
+		return lexLineComment
+	case '*':
+		// General comment (/*)
+		return lexGeneralComment
+	default:
+		// Division operator (/)
+		l.backup()
+		l.emit(token.Div)
+		return lexToken
+	}
+}
+
+// lexLineComment lexes a line comment. A line comment acts like a newline.
+func lexLineComment(l *lexer) stateFn {
+	insertSemicolon(l)
+	for {
+		switch l.next() {
+		case eof:
+			l.emit(token.Comment)
+			l.emit(token.EOF)
+			return nil
+		case '\n':
+			l.emit(token.Comment)
+			// Update the index to the first token of the current line.
+			l.line = len(l.tokens)
+			return lexToken
+		}
+	}
+}
+
+// lexGeneralComment lexes a general comment. A general comment containing one
+// or more newlines acts like a newline, otherwise it acts like a space.
+func lexGeneralComment(l *lexer) stateFn {
+	panic("not yet implemented.")
+}
+
+// insertSemicolon inserts a semicolon if the correct conditions have been met.
 //
 // When the input is broken into tokens, a semicolon is automatically inserted
 // into the token stream at the end of a non-blank line if the line's final
@@ -41,26 +96,14 @@ func lexToken(l *lexer) stateFn {
 //    * one of the operators and delimiters ++, --, ), ], or }
 //
 // ref: http://golang.org/ref/spec#Semicolons
-func lexAutoSemicolon(l *lexer) stateFn {
-	atEOF := false
-	switch l.pos - l.start {
-	case 0:
-		// End of file has been reached.
-		atEOF = true
-	case 1:
-		l.ignore()
-		// A newline character ('\n') has been consumed.
-	default:
-		log.Fatalf("lexer.lexAutoSemicolon: expected eof or newline, got %q.\n", l.input[l.start:])
-	}
-
-	// When the input is broken into tokens, a semicolon is automatically
-	// inserted into the token stream at the end of a non-blank line if the
-	// line's final token is
+func insertSemicolon(l *lexer) {
 	insert := false
-	if len(l.tokens) > l.line {
-		last := l.tokens[len(l.tokens)-1]
+	for i := len(l.tokens) - 1; i >= l.line; i-- {
+		last := l.tokens[i]
 		switch last.Kind {
+		case token.Comment:
+			// Ignore comments.
+			continue
 		case token.Ident:
 			// * an identifier
 			insert = true
@@ -74,25 +117,14 @@ func lexAutoSemicolon(l *lexer) stateFn {
 			// * one of the operators and delimiters ++, --, ), ], or }
 			insert = true
 		}
-
-		// Insert semicolon.
-		if insert {
-			tok := token.Token{
-				Kind: token.Semicolon,
-				Val:  ";",
-			}
-			l.tokens = append(l.tokens, tok)
+		break
+	}
+	// Insert semicolon.
+	if insert {
+		tok := token.Token{
+			Kind: token.Semicolon,
+			Val:  ";",
 		}
+		l.tokens = append(l.tokens, tok)
 	}
-
-	if atEOF {
-		// Emit an EOF and terminate the lexer with a nil state function.
-		l.emit(token.EOF)
-		return nil
-	}
-
-	// Update the index to the first token of the current line.
-	l.line = len(l.tokens)
-
-	return lexToken
 }
