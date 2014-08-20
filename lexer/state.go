@@ -72,6 +72,7 @@ func lexLineComment(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			l.emit(token.Comment)
+			// Emit an EOF and terminate the lexer with a nil state function.
 			l.emit(token.EOF)
 			return nil
 		case '\n':
@@ -90,25 +91,23 @@ func lexGeneralComment(l *lexer) stateFn {
 	for !strings.HasSuffix(l.input[l.start:l.pos], "*/") {
 		switch l.next() {
 		case eof:
-			return l.errorf("unexpected eof in general comment.")
+			return l.errorf("unexpected eof in general comment")
 		case '\n':
 			hasNewline = true
 		}
 	}
-	l.emit(token.Comment)
-
-	// Update the index to the first token of the current line.
-	l.line = len(l.tokens)
-
 	if hasNewline {
 		insertSemicolon(l)
+		// Update the index to the first token of the current line.
+		l.line = len(l.tokens)
 	}
+
+	l.emit(token.Comment)
 
 	return lexToken
 }
 
-// TODO(u): Insert semicolon at the correct location; ref:
-// go/src/pkg/go/scanner/scanner_test.go:345
+// TODO(u): Add test case for insertSemicolon; ref: go/src/pkg/go/scanner/scanner_test.go:345
 
 // insertSemicolon inserts a semicolon if the correct conditions have been met.
 //
@@ -123,11 +122,14 @@ func lexGeneralComment(l *lexer) stateFn {
 // ref: http://golang.org/ref/spec#Semicolons
 func insertSemicolon(l *lexer) {
 	insert := false
-	for i := len(l.tokens) - 1; i >= l.line; i-- {
-		last := l.tokens[i]
+	trailingComments := false
+	var pos int
+	for pos = len(l.tokens) - 1; pos >= l.line; pos-- {
+		last := l.tokens[pos]
 		switch last.Kind {
 		case token.Comment:
-			// Ignore comments.
+			// Ignore trailing comments.
+			trailingComments = true
 			continue
 		case token.Ident:
 			// * an identifier
@@ -144,6 +146,7 @@ func insertSemicolon(l *lexer) {
 		}
 		break
 	}
+
 	// Insert a semicolon.
 	if insert {
 		tok := token.Token{
@@ -151,5 +154,12 @@ func insertSemicolon(l *lexer) {
 			Val:  ";",
 		}
 		l.tokens = append(l.tokens, tok)
+
+		if trailingComments {
+			// Move trailing comments to the end.
+			copy(l.tokens[pos+2:], l.tokens[pos+1:])
+			// Insert a semicolon before the trailing comments.
+			l.tokens[pos+1] = tok
+		}
 	}
 }
