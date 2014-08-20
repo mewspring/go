@@ -169,14 +169,14 @@ func lexSubOrDec(l *lexer) stateFn {
 	return lexToken
 }
 
-// lexDotOrNumber lexes a dot delimiter (.), or a number (123, 0x7B, 0173, .123,
-// 123.45, 1e-15, 2i).
+// lexDotOrNumber lexes a dot delimiter (.), an ellipsis delimiter (...), or a
+// number (123, 0x7B, 0173, .123, 123.45, 1e-15, 2i).
 func lexDotOrNumber(l *lexer) stateFn {
 	// Integer part.
 	var kind token.Kind
 	if l.accept("0") {
 		kind = token.Int
-		// Early return for hexadecimal.
+		// Early return for hexadecimal constant.
 		if l.accept("xX") {
 			if !l.acceptRun(hex) {
 				return l.errorf("malformed hexadecimal constant")
@@ -203,9 +203,14 @@ func lexDotOrNumber(l *lexer) stateFn {
 		kind = token.Float
 	}
 
-	// Early return for dot delimiter.
+	// Early return for dot or ellipsis delimiter.
 	if kind == token.Dot {
-		l.emit(token.Dot)
+		if strings.HasPrefix(l.input[l.pos:], "..") {
+			l.pos += 2
+			l.width = 0
+			kind = token.Ellipsis
+		}
+		l.emit(kind)
 		return lexToken
 	}
 
@@ -245,8 +250,10 @@ func lexString(l *lexer) stateFn {
 			if multibyte {
 				delta := len(l.input[l.pos:]) - len(tail)
 				l.pos += delta
+				l.width = 0
 			} else {
 				l.pos++
+				l.width = 0
 			}
 		case '"':
 			l.emit(token.String)
