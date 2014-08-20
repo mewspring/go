@@ -32,8 +32,21 @@ func lexToken(l *lexer) stateFn {
 
 	r := l.next()
 	switch r {
+	case eof:
+		insertSemicolon(l)
+		// Emit an EOF and terminate the lexer with a nil state function.
+		l.emit(token.EOF)
+		return nil
+	case '\n':
+		l.ignore()
+		insertSemicolon(l)
+		// Update the index to the first token of the current line.
+		l.line = len(l.tokens)
+		return lexToken
 	case '/':
 		return lexDivOrComment
+	case '!':
+		return lexNot
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -47,17 +60,6 @@ func lexToken(l *lexer) stateFn {
 		return lexString
 	case '`':
 		return lexRawString
-	case '\n':
-		l.ignore()
-		insertSemicolon(l)
-		// Update the index to the first token of the current line.
-		l.line = len(l.tokens)
-		return lexToken
-	case eof:
-		insertSemicolon(l)
-		// Emit an EOF and terminate the lexer with a nil state function.
-		l.emit(token.EOF)
-		return nil
 	}
 
 	panic("not yet implemented.")
@@ -126,6 +128,22 @@ func lexGeneralComment(l *lexer) stateFn {
 
 	l.emit(token.Comment)
 
+	return lexToken
+}
+
+// lexNot lexes a logical not operator (!), or a not equal comparison operator
+// (!=). An exclamation mark character (!) has already been consumed.
+func lexNot(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Not equal comparison operator (!=)
+		l.emit(token.Neq)
+	default:
+		// Logical not operator (!).
+		l.backup()
+		l.emit(token.Not)
+	}
 	return lexToken
 }
 
