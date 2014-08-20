@@ -67,6 +67,30 @@ func lexToken(l *lexer) stateFn {
 		return lexAddOrInc
 	case '-':
 		return lexSubOrDec
+	case '(':
+		l.emit(token.Lparen)
+		return lexToken
+	case '[':
+		l.emit(token.Lbrack)
+		return lexToken
+	case '{':
+		l.emit(token.Lbrace)
+		return lexToken
+	case ')':
+		l.emit(token.Rparen)
+		return lexToken
+	case ']':
+		l.emit(token.Rbrack)
+		return lexToken
+	case '}':
+		l.emit(token.Rbrace)
+		return lexToken
+	case ',':
+		l.emit(token.Comma)
+		return lexToken
+	case ';':
+		l.emit(token.Semicolon)
+		return lexToken
 	case '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		l.backup()
 		return lexDotOrNumber
