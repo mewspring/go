@@ -1,9 +1,11 @@
 package lexer
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/mewlang/go/token"
 )
@@ -15,6 +17,8 @@ const (
 	whitespace = " \t\r"
 	// decimal specifies the decimal digit characters.
 	decimal = "0123456789"
+	// octal specifies the octal digit characters.
+	octal = "01234567"
 	// hex specifies the hexadecimal digit characters.
 	hex = "0123456789ABCDEFabcdef"
 )
@@ -108,7 +112,7 @@ func lexToken(l *lexer) stateFn {
 		return lexKeywordOrIdent
 	}
 
-	panic("not yet implemented.")
+	return l.errorf("syntax error; unexpected %q", r)
 }
 
 // isLetter returns true if r is a Unicode letter or an underscore, and false
@@ -121,8 +125,7 @@ func isLetter(r rune) bool {
 // (/=), a line comment (//), or a general comment (/*). A slash character (/)
 // has already been consumed.
 func lexDivOrComment(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Division assignment operator (/=).
 		l.emit(token.DivAssign)
@@ -186,8 +189,7 @@ func lexGeneralComment(l *lexer) stateFn {
 // lexNot lexes a logical not operator (!), or a not equal comparison operator
 // (!=). An exclamation mark character (!) has already been consumed.
 func lexNot(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Not equal comparison operator (!=).
 		l.emit(token.Neq)
@@ -204,8 +206,7 @@ func lexNot(l *lexer) stateFn {
 // assignment operator (<<=), or a channel communication operator (<-). A
 // less-than sign character (<) has already been consumed.
 func lexLessArrowOrShl(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '-':
 		// Channel communication operator (<-).
 		l.emit(token.Arrow)
@@ -233,8 +234,7 @@ func lexLessArrowOrShl(l *lexer) stateFn {
 // shift assignment operator (>>=). A greater-than sign character (>) has
 // already been consumed.
 func lexGreaterOrShr(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '>':
 		if l.accept("=") {
 			// Right shift assignment operator (>>=).
@@ -259,8 +259,7 @@ func lexGreaterOrShr(l *lexer) stateFn {
 // (&^=), or a logical AND operator (&&). An ampersand character (&) has already
 // been consumed.
 func lexAndOrClear(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '^':
 		if l.accept("=") {
 			// Bit clear assignment operator (&^=).
@@ -287,8 +286,7 @@ func lexAndOrClear(l *lexer) stateFn {
 // or a logical OR operator (||). A vertical bar character (|) has already been
 // consumed.
 func lexOr(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '|':
 		// Logical OR operator (||).
 		l.emit(token.Lor)
@@ -306,8 +304,7 @@ func lexOr(l *lexer) stateFn {
 // lexEqOrAssign lexes an equal comparison operator (==), or an assignment
 // operator (=). An equal sign character (=) has already been consumed.
 func lexEqOrAssign(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Equal comparison operator (==).
 		l.emit(token.Eq)
@@ -322,8 +319,7 @@ func lexEqOrAssign(l *lexer) stateFn {
 // lexColonOrDeclAssign lexes a colon delimiter (:), or a declare and initialize
 // operator (:=). A colon character (:) has already been consumed.
 func lexColonOrDeclAssign(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Declare and initialize operator (:=).
 		l.emit(token.DeclAssign)
@@ -338,8 +334,7 @@ func lexColonOrDeclAssign(l *lexer) stateFn {
 // lexMul lexes a multiplication operator (*), or a multiplication assignment
 // operator (*=). An asterisk character (*) has already been consumed.
 func lexMul(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Multiplication assignment operator (*=).
 		l.emit(token.MulAssign)
@@ -355,8 +350,7 @@ func lexMul(l *lexer) stateFn {
 // lexMod lexes a modulo operator (%), or a modulo assignment operator (%=). A
 // percent sign character (%) has already been consumed.
 func lexMod(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Modulo assignment operator (%=).
 		l.emit(token.ModAssign)
@@ -371,8 +365,7 @@ func lexMod(l *lexer) stateFn {
 // lexXor lexes a bitwise XOR operator (^), or a bitwise XOR assignment operator
 // (^=). A caret character (^) has already been consumed.
 func lexXor(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Bitwise XOR assignment operator (^=).
 		l.emit(token.XorAssign)
@@ -389,8 +382,7 @@ func lexXor(l *lexer) stateFn {
 // (+=), or an increment statement operator (++). A plus character (+) has
 // already been consumed.
 func lexAddOrInc(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Addition assignment operator (+=).
 		l.emit(token.AddAssign)
@@ -410,8 +402,7 @@ func lexAddOrInc(l *lexer) stateFn {
 // operator (-=), or a decrement statement operator (--). A minus character (-)
 // has already been consumed.
 func lexSubOrDec(l *lexer) stateFn {
-	r := l.next()
-	switch r {
+	switch l.next() {
 	case '=':
 		// Subtraction assignment operator (-=).
 		l.emit(token.SubAssign)
@@ -501,18 +492,9 @@ func lexRune(l *lexer) stateFn {
 		return l.errorf("unexpected newline in rune literal")
 	case '\\':
 		// Consume backslash escape sequence.
-		l.backup()
-		_, multibyte, tail, err := strconv.UnquoteChar(l.input[l.pos:], '\'')
+		err := consumeEscape(l, '\'')
 		if err != nil {
 			return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
-		}
-		if multibyte {
-			delta := len(l.input[l.pos:]) - len(tail)
-			l.pos += delta
-			l.width = 0
-		} else {
-			l.pos++
-			l.width = 0
 		}
 	}
 	if !l.accept("'") {
@@ -533,18 +515,9 @@ func lexString(l *lexer) stateFn {
 			return l.errorf("unexpected newline in interpreted string literal")
 		case '\\':
 			// Consume backslash escape sequence.
-			l.backup()
-			_, multibyte, tail, err := strconv.UnquoteChar(l.input[l.pos:], '"')
+			err := consumeEscape(l, '"')
 			if err != nil {
 				return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
-			}
-			if multibyte {
-				delta := len(l.input[l.pos:]) - len(tail)
-				l.pos += delta
-				l.width = 0
-			} else {
-				l.pos++
-				l.width = 0
 			}
 		case '"':
 			l.emit(token.String)
@@ -613,6 +586,87 @@ func lexKeywordOrIdent(l *lexer) stateFn {
 		l.emit(token.Ident)
 	}
 	return lexToken
+}
+
+// consumeEscape consumes an escape sequence. A valid single-character escape
+// sequence is specified by valid. Single quotes are only valid within rune
+// literals and double quotes are only valid within string literals. A backslash
+// character (\) has already been consumed.
+//
+// Several backslash escapes allow arbitrary values to be encoded as ASCII text.
+// There are four ways to represent the integer value as a numeric constant: \x
+// followed by exactly two hexadecimal digits; \u followed by exactly four
+// hexadecimal digits; \U followed by exactly eight hexadecimal digits, and a
+// plain backslash \ followed by exactly three octal digits. In each case the
+// value of the literal is the value represented by the digits in the
+// corresponding base.
+//
+// Although these representations all result in an integer, they have different
+// valid ranges. Octal escapes must represent a value between 0 and 255
+// inclusive. Hexadecimal escapes satisfy this condition by construction. The
+// escapes \u and \U represent Unicode code points so within them some values
+// are illegal, in particular those above 0x10FFFF and surrogate halves.
+//
+// After a backslash, certain single-character escapes represent special values:
+//    \a   U+0007 alert or bell
+//    \b   U+0008 backspace
+//    \f   U+000C form feed
+//    \n   U+000A line feed or newline
+//    \r   U+000D carriage return
+//    \t   U+0009 horizontal tab
+//    \v   U+000b vertical tab
+//    \\   U+005c backslash
+//    \'   U+0027 single quote  (valid escape only within rune literals)
+//    \"   U+0022 double quote  (valid escape only within string literals)
+//
+// All other sequences starting with a backslash are illegal inside rune and
+// string literals.
+//
+// ref: http://golang.org/ref/spec#Rune_literals
+func consumeEscape(l *lexer, valid rune) error {
+	r := l.next()
+	switch r {
+	case '0', '1', '2', '3':
+		// Octal escape.
+		if !l.accept(octal) || !l.accept(octal) {
+			return fmt.Errorf("non-octal character %q in octal escape", l.next())
+		}
+		s := l.input[l.pos-3 : l.pos]
+		_, err := strconv.ParseUint(s, 8, 8)
+		if err != nil {
+			return fmt.Errorf("invalid octal escape; %v", err)
+		}
+	case 'x':
+		// Hexadecimal escape.
+		if !l.accept(hex) || !l.accept(hex) {
+			return fmt.Errorf("non-hex character %q in hex escape", l.next())
+		}
+	case 'u', 'U':
+		// Unicode escape.
+		n := 4
+		if r == 'U' {
+			n = 8
+		}
+		for i := 0; i < n; i++ {
+			if !l.accept(hex) {
+				return fmt.Errorf("non-hex character %q in Unicode escape", l.next())
+			}
+		}
+		s := l.input[l.pos-n : l.pos]
+		x, err := strconv.ParseUint(s, 16, 32)
+		if err != nil {
+			return fmt.Errorf("invalid Unicode escape; %v", err)
+		}
+		r := rune(x)
+		if !utf8.ValidRune(r) {
+			return fmt.Errorf("invalid rune %q in Unicode escape", r)
+		}
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', valid:
+		// Single-character escape.
+	default:
+		return fmt.Errorf("unknown escape sequence: %q", r)
+	}
+	return nil
 }
 
 // TODO(u): Add test case for insertSemicolon; ref: go/src/pkg/go/scanner/scanner_test.go:345
