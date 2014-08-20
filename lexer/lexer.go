@@ -101,16 +101,6 @@ func (l *lexer) next() (r rune) {
 	return r
 }
 
-// peek returns but does not consume the next rune of the input.
-func (l *lexer) peek() (r rune) {
-	r = l.next()
-	if r == eof {
-		return eof
-	}
-	l.backup()
-	return r
-}
-
 // backup backs up one rune in the input. It can only be called once per call to
 // next.
 func (l *lexer) backup() {
