@@ -9,9 +9,11 @@ Documentation
 
 Documentation provided by GoDoc.
 
+- [lexer][]: implements lexical tokenization of Go source code.
 - [token][]: defines constants representing the lexical tokens of the Go
 programming language.
 
+[lexer]: http://godoc.org/github.com/mewlang/go/lexer
 [token]: http://godoc.org/github.com/mewlang/go/token
 
 public domain
