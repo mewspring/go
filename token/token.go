@@ -120,7 +120,7 @@ const (
 	Rparen    // )
 	Rbrack    // ]
 	Rbrace    // }
-	Period    // .
+	Dot       // .
 	Comma     // ,
 	Colon     // :
 	Semicolon // ;
