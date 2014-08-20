@@ -21,7 +21,8 @@ type Kind uint8
 // Token types.
 const (
 	// Special tokens.
-	EOF     Kind = iota // end of file.
+	Error   Kind = iota // an error occured; value contains the error message.
+	EOF                 // end of file.
 	Comment             // line comment or general comment.
 
 	// Identifiers.

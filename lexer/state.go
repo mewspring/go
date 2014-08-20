@@ -1,6 +1,10 @@
 package lexer
 
-import "github.com/mewlang/go/token"
+import (
+	"strings"
+
+	"github.com/mewlang/go/token"
+)
 
 // A stateFn represents the state of the lexer as a function that returns a
 // state function.
@@ -82,8 +86,29 @@ func lexLineComment(l *lexer) stateFn {
 // lexGeneralComment lexes a general comment. A general comment containing one
 // or more newlines acts like a newline, otherwise it acts like a space.
 func lexGeneralComment(l *lexer) stateFn {
-	panic("not yet implemented.")
+	hasNewline := false
+	for !strings.HasSuffix(l.input[l.start:l.pos], "*/") {
+		switch l.next() {
+		case eof:
+			return l.errorf("unexpected eof in general comment.")
+		case '\n':
+			hasNewline = true
+		}
+	}
+	l.emit(token.Comment)
+
+	// Update the index to the first token of the current line.
+	l.line = len(l.tokens)
+
+	if hasNewline {
+		insertSemicolon(l)
+	}
+
+	return lexToken
 }
+
+// TODO(u): Insert semicolon at the correct location; ref:
+// go/src/pkg/go/scanner/scanner_test.go:345
 
 // insertSemicolon inserts a semicolon if the correct conditions have been met.
 //
@@ -119,7 +144,7 @@ func insertSemicolon(l *lexer) {
 		}
 		break
 	}
-	// Insert semicolon.
+	// Insert a semicolon.
 	if insert {
 		tok := token.Token{
 			Kind: token.Semicolon,

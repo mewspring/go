@@ -7,6 +7,7 @@
 package lexer
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -54,6 +55,17 @@ func (l *lexer) lex() {
 	for state := lexToken; state != nil; {
 		state = state(l)
 	}
+}
+
+// errorf emits an error token and terminates the scan by returning a nil state
+// function.
+func (l *lexer) errorf(format string, args ...interface{}) stateFn {
+	tok := token.Token{
+		Kind: token.Error,
+		Val:  fmt.Sprintf(format, args...),
+	}
+	l.tokens = append(l.tokens, tok)
+	return nil
 }
 
 // emit emits a token of the specified token type and advances the token start
