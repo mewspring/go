@@ -53,6 +53,8 @@ func lexToken(l *lexer) stateFn {
 		return lexAndOrClear
 	case '|':
 		return lexOr
+	case '*':
+		return lexMul
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -253,6 +255,23 @@ func lexOr(l *lexer) stateFn {
 		// Bitwise OR operator (|).
 		l.backup()
 		l.emit(token.Or)
+	}
+	return lexToken
+}
+
+// lexMul lexes a multiplication operator (*), or a multiplication assignment
+// operator (*=). An asterisk character (*) has already been consumed.
+func lexMul(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Multiplication assignment operator (*=).
+		l.emit(token.MulAssign)
+	default:
+		// Multiplication operator (*). The semantical analysis will determine if
+		// the token is part of a pointer dereference expression.
+		l.backup()
+		l.emit(token.Mul)
 	}
 	return lexToken
 }
