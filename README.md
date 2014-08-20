@@ -26,7 +26,7 @@ This code is hereby released into the *[public domain][]*.
 BSD
 ---
 
-Any code or documentation derived directly from the [standard Go source code][]
+Any code or documentation directly derived from the [standard Go source code][]
 is governed by a [BSD license][].
 
 [standard Go source code]: https://code.google.com/p/go
