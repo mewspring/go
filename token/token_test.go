@@ -52,6 +52,7 @@ func TestKindIsKeyword(t *testing.T) {
 		{kind: DeclAssign, want: false},
 		{kind: Div, want: false},
 		{kind: DivAssign, want: false},
+		{kind: Dot, want: false},
 		{kind: Ellipsis, want: false},
 		{kind: EOF, want: false},
 		{kind: Eq, want: false},
@@ -78,7 +79,6 @@ func TestKindIsKeyword(t *testing.T) {
 		{kind: Not, want: false},
 		{kind: Or, want: false},
 		{kind: OrAssign, want: false},
-		{kind: Dot, want: false},
 		{kind: Rbrace, want: false},
 		{kind: Rbrack, want: false},
 		{kind: Rparen, want: false},
@@ -98,7 +98,7 @@ func TestKindIsKeyword(t *testing.T) {
 	for i, g := range golden {
 		got := g.kind.IsKeyword()
 		if got != g.want {
-			t.Errorf("i=%d: expected %t, got %t for token %v.", i, g.want, got, g.kind)
+			t.Errorf("i=%d: IsKeyword mismatch for token type %v; expected %t, got %t.", i, g.kind, g.want, got)
 		}
 	}
 }
@@ -120,6 +120,7 @@ func TestKindIsOperator(t *testing.T) {
 		{kind: DeclAssign, want: true},
 		{kind: Div, want: true},
 		{kind: DivAssign, want: true},
+		{kind: Dot, want: true},
 		{kind: Ellipsis, want: true},
 		{kind: Eq, want: true},
 		{kind: Gt, want: true},
@@ -140,7 +141,6 @@ func TestKindIsOperator(t *testing.T) {
 		{kind: Not, want: true},
 		{kind: Or, want: true},
 		{kind: OrAssign, want: true},
-		{kind: Dot, want: true},
 		{kind: Rbrace, want: true},
 		{kind: Rbrack, want: true},
 		{kind: Rparen, want: true},
@@ -194,7 +194,7 @@ func TestKindIsOperator(t *testing.T) {
 	for i, g := range golden {
 		got := g.kind.IsOperator()
 		if got != g.want {
-			t.Errorf("i=%d: expected %t, got %t for token type %v.", i, g.want, got, g.kind)
+			t.Errorf("i=%d: IsOperand mismatch for token type %v; expected %t, got %t.", i, g.kind, g.want, got)
 		}
 	}
 }
@@ -202,9 +202,10 @@ func TestKindIsOperator(t *testing.T) {
 func TestKindIsLiteral(t *testing.T) {
 	golden := []test{
 		// Literals.
-		{kind: Int, want: true},
 		{kind: Float, want: true},
+		{kind: Ident, want: true},
 		{kind: Imag, want: true},
+		{kind: Int, want: true},
 		{kind: Rune, want: true},
 		{kind: String, want: true},
 
@@ -231,6 +232,7 @@ func TestKindIsLiteral(t *testing.T) {
 		{kind: Defer, want: false},
 		{kind: Div, want: false},
 		{kind: DivAssign, want: false},
+		{kind: Dot, want: false},
 		{kind: Ellipsis, want: false},
 		{kind: Else, want: false},
 		{kind: EOF, want: false},
@@ -243,7 +245,6 @@ func TestKindIsLiteral(t *testing.T) {
 		{kind: Goto, want: false},
 		{kind: Gt, want: false},
 		{kind: Gte, want: false},
-		{kind: Ident, want: false},
 		{kind: If, want: false},
 		{kind: Import, want: false},
 		{kind: Inc, want: false},
@@ -265,7 +266,6 @@ func TestKindIsLiteral(t *testing.T) {
 		{kind: Or, want: false},
 		{kind: OrAssign, want: false},
 		{kind: Package, want: false},
-		{kind: Dot, want: false},
 		{kind: Range, want: false},
 		{kind: Rbrace, want: false},
 		{kind: Rbrack, want: false},
@@ -290,7 +290,7 @@ func TestKindIsLiteral(t *testing.T) {
 	for i, g := range golden {
 		got := g.kind.IsLiteral()
 		if got != g.want {
-			t.Errorf("i=%d: expected %t, got %t for token type %v.", i, g.want, got, g.kind)
+			t.Errorf("i=%d: IsLiteral mismatch for token type %v; expected %t, got %t.", i, g.kind, g.want, got)
 		}
 	}
 }
