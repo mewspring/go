@@ -51,6 +51,8 @@ func lexToken(l *lexer) stateFn {
 		return lexLessArrowOrShl
 	case '>':
 		return lexGreaterOrShr
+	case '&':
+		return lexAndOrClear
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -202,6 +204,35 @@ func lexGreaterOrShr(l *lexer) stateFn {
 		// Greater than comparison operator (>).
 		l.backup()
 		l.emit(token.Gt)
+	}
+	return lexToken
+}
+
+// lexAndOrClear lexes a bitwise AND operator (&), a bitwise AND assignment
+// operator (&=), a bit clear operator (&^), a bit clear assignment operator
+// (&^=), or a logical AND operator (&&). An ampersand character (&) has already
+// been consumed.
+func lexAndOrClear(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '^':
+		if l.accept("=") {
+			// Bit clear assignment operator (&^=).
+			l.emit(token.ClearAssign)
+		} else {
+			// Bit clear operator (&^).
+			l.emit(token.Clear)
+		}
+	case '&':
+		// Logical AND operator (&&).
+		l.emit(token.Land)
+	case '=':
+		// Bitwise AND assignment operator (&=).
+		l.emit(token.AndAssign)
+	default:
+		// Bitwise AND operator (&).
+		l.backup()
+		l.emit(token.And)
 	}
 	return lexToken
 }
