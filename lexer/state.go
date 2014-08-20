@@ -57,6 +57,8 @@ func lexToken(l *lexer) stateFn {
 		return lexMul
 	case '%':
 		return lexMod
+	case '^':
+		return lexXor
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -290,6 +292,23 @@ func lexMod(l *lexer) stateFn {
 		// Modulo operator (%).
 		l.backup()
 		l.emit(token.Mod)
+	}
+	return lexToken
+}
+
+// lexXor lexes a bitwise XOR operator (^), or a bitwise XOR assignment operator
+// (^=). A caret character (^) has already been consumed.
+func lexXor(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Bitwise XOR assignment operator (^=).
+		l.emit(token.XorAssign)
+	default:
+		// Bitwise XOR operator (^). The semantical analysis will determine if the
+		// token is part of a bitwise complement expression.
+		l.backup()
+		l.emit(token.Xor)
 	}
 	return lexToken
 }
