@@ -26,6 +26,10 @@ func lexToken(l *lexer) stateFn {
 	switch r {
 	case '/':
 		return lexDivOrComment
+	case '+':
+		return lexAddOrInc
+	case '-':
+		return lexSubOrDec
 	case '"':
 		return lexString
 	case '`':
@@ -109,6 +113,48 @@ func lexGeneralComment(l *lexer) stateFn {
 
 	l.emit(token.Comment)
 
+	return lexToken
+}
+
+// lexAddOrInc lexes an addition operator (+), an addition assignment operator
+// (+=), or an increment statement operator (++). A plus character ('+') has
+// already been consumed.
+func lexAddOrInc(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Addition assignment operator (+=)
+		l.emit(token.AddAssign)
+	case '+':
+		// Increment statement operator (++).
+		l.emit(token.Inc)
+	default:
+		// Addition operator (+). The semantical analysis will determine if the
+		// token is part of a positive number as an unary operator.
+		l.backup()
+		l.emit(token.Add)
+	}
+	return lexToken
+}
+
+// lexSubOrDec lexes a subtraction operator (-), a subtraction assignment
+// operator (-=), or a decrement statement operator (--). A minus character
+// ('-') has already been consumed.
+func lexSubOrDec(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Subtraction assignment operator (-=)
+		l.emit(token.SubAssign)
+	case '-':
+		// Decrement statement operator (--).
+		l.emit(token.Dec)
+	default:
+		// Subtraction operator (-). The semantical analysis will determine if the
+		// token is part of a negative number as an unary operator.
+		l.backup()
+		l.emit(token.Sub)
+	}
 	return lexToken
 }
 

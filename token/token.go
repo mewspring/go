@@ -109,7 +109,7 @@ const (
 	OrAssign    // |=
 	XorAssign   // ^=
 
-	// Statements.
+	// Statement operators.
 	Inc // ++
 	Dec // --
 
