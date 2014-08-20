@@ -41,6 +41,8 @@ func lexToken(l *lexer) stateFn {
 	case '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		l.backup()
 		return lexDotOrNumber
+	case '\'':
+		return lexRune
 	case '"':
 		return lexString
 	case '`':
@@ -62,7 +64,7 @@ func lexToken(l *lexer) stateFn {
 }
 
 // lexDivOrComment lexes a division operator (/), a division assignment operator
-// (/=), a line comment (//), or a general comment (/*). A slash character ('/')
+// (/=), a line comment (//), or a general comment (/*). A slash character (/)
 // has already been consumed.
 func lexDivOrComment(l *lexer) stateFn {
 	r := l.next()
@@ -128,7 +130,7 @@ func lexGeneralComment(l *lexer) stateFn {
 }
 
 // lexAddOrInc lexes an addition operator (+), an addition assignment operator
-// (+=), or an increment statement operator (++). A plus character ('+') has
+// (+=), or an increment statement operator (++). A plus character (+) has
 // already been consumed.
 func lexAddOrInc(l *lexer) stateFn {
 	r := l.next()
@@ -149,8 +151,8 @@ func lexAddOrInc(l *lexer) stateFn {
 }
 
 // lexSubOrDec lexes a subtraction operator (-), a subtraction assignment
-// operator (-=), or a decrement statement operator (--). A minus character
-// ('-') has already been consumed.
+// operator (-=), or a decrement statement operator (--). A minus character (-)
+// has already been consumed.
 func lexSubOrDec(l *lexer) stateFn {
 	r := l.next()
 	switch r {
@@ -231,8 +233,39 @@ func lexDotOrNumber(l *lexer) stateFn {
 	return lexToken
 }
 
+// lexRune lexes a rune literal ('a'). A single quote character (') has already
+// been consumed.
+func lexRune(l *lexer) stateFn {
+	switch l.next() {
+	case eof:
+		return l.errorf("unexpected eof in rune literal")
+	case '\n':
+		return l.errorf("unexpected newline in rune literal")
+	case '\\':
+		// Consume backslash escape sequence.
+		l.backup()
+		_, multibyte, tail, err := strconv.UnquoteChar(l.input[l.pos:], '\'')
+		if err != nil {
+			return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
+		}
+		if multibyte {
+			delta := len(l.input[l.pos:]) - len(tail)
+			l.pos += delta
+			l.width = 0
+		} else {
+			l.pos++
+			l.width = 0
+		}
+	}
+	if !l.accept("'") {
+		return l.errorf("missing ' in rune literal")
+	}
+	l.emit(token.Rune)
+	return lexToken
+}
+
 // lexString lexes an interpreted string literal ("foo"). A double quote
-// character ('"') has already been consumed.
+// character (") has already been consumed.
 func lexString(l *lexer) stateFn {
 	for {
 		switch l.next() {
@@ -262,7 +295,7 @@ func lexString(l *lexer) stateFn {
 	}
 }
 
-// lexRawString lexes a raw string literal (`foo`). A back quote character ('`')
+// lexRawString lexes a raw string literal (`foo`). A back quote character (`)
 // has already been consumed.
 func lexRawString(l *lexer) stateFn {
 	for {
