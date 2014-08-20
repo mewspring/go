@@ -55,6 +55,8 @@ func lexToken(l *lexer) stateFn {
 		return lexOr
 	case '*':
 		return lexMul
+	case '%':
+		return lexMod
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -272,6 +274,22 @@ func lexMul(l *lexer) stateFn {
 		// the token is part of a pointer dereference expression.
 		l.backup()
 		l.emit(token.Mul)
+	}
+	return lexToken
+}
+
+// lexMod lexes a modulo operator (%), or a modulo assignment operator (%=). A
+// percent sign character (%) has already been consumed.
+func lexMod(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Modulo assignment operator (%=).
+		l.emit(token.ModAssign)
+	default:
+		// Modulo operator (%).
+		l.backup()
+		l.emit(token.Mod)
 	}
 	return lexToken
 }
