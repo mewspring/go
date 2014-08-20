@@ -49,6 +49,8 @@ func lexToken(l *lexer) stateFn {
 		return lexNot
 	case '<':
 		return lexLessArrowOrShl
+	case '>':
+		return lexGreaterOrShr
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -171,9 +173,35 @@ func lexLessArrowOrShl(l *lexer) stateFn {
 		// Less than or equal comparison operator (<=).
 		l.emit(token.Lte)
 	default:
-		// Less-than comparison operator (<).
+		// Less than comparison operator (<).
 		l.backup()
 		l.emit(token.Lt)
+	}
+	return lexToken
+}
+
+// lexGreaterOrShr lexes a greater than comparison operator (>), a greater than
+// or equal comparison operator (>=), a right shift operator (>>), or a right
+// shift assignment operator (>>=). A greater-than sign character (>) has
+// already been consumed.
+func lexGreaterOrShr(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '>':
+		if l.accept("=") {
+			// Right shift assignment operator (>>=).
+			l.emit(token.ShrAssign)
+		} else {
+			// Right shift operator (>>).
+			l.emit(token.Shr)
+		}
+	case '=':
+		// Greater than or equal comparison operator (>=).
+		l.emit(token.Gte)
+	default:
+		// Greater than comparison operator (>).
+		l.backup()
+		l.emit(token.Gt)
 	}
 	return lexToken
 }
