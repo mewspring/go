@@ -53,6 +53,8 @@ func lexToken(l *lexer) stateFn {
 		return lexAndOrClear
 	case '|':
 		return lexOr
+	case '=':
+		return lexEqOrAssign
 	case '*':
 		return lexMul
 	case '%':
@@ -259,6 +261,22 @@ func lexOr(l *lexer) stateFn {
 		// Bitwise OR operator (|).
 		l.backup()
 		l.emit(token.Or)
+	}
+	return lexToken
+}
+
+// lexEqOrAssign lexes an equal comparison operator (==), or an assignment
+// operator (=). An equal sign character (=) has already been consumed.
+func lexEqOrAssign(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Equal comparison operator (==).
+		l.emit(token.Eq)
+	default:
+		// Assignment operator (=).
+		l.backup()
+		l.emit(token.Assign)
 	}
 	return lexToken
 }
