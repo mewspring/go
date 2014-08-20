@@ -465,6 +465,8 @@ func lexDotOrNumber(l *lexer) stateFn {
 
 	// Exponent part.
 	if l.accept("eE") {
+		kind = token.Float
+
 		// Optional sign.
 		l.accept("+-")
 
