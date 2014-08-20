@@ -103,7 +103,7 @@ func lexToken(l *lexer) stateFn {
 		return lexRawString
 	}
 
-	// Check if r is a Unicode letter or an underscore character (_).
+	// Check if r is a Unicode letter or an underscore character.
 	if isLetter(r) {
 		return lexKeywordOrIdent
 	}
@@ -111,8 +111,8 @@ func lexToken(l *lexer) stateFn {
 	panic("not yet implemented.")
 }
 
-// isLetter returns true if r is a Unicode letter or an underscore character
-// (_).
+// isLetter returns true if r is a Unicode letter or an underscore, and false
+// otherwise.
 func isLetter(r rune) bool {
 	return unicode.IsLetter(r) || r == '_'
 }
@@ -474,7 +474,9 @@ func lexDotOrNumber(l *lexer) stateFn {
 
 	// Exponent part.
 	if l.accept("eE") {
+		// Optional sign.
 		l.accept("+-")
+
 		if !l.acceptRun(decimal) {
 			return l.errorf("malformed exponent of floating-point constant")
 		}
