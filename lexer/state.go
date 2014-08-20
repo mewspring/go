@@ -3,6 +3,7 @@ package lexer
 import (
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/mewlang/go/token"
 )
@@ -102,7 +103,18 @@ func lexToken(l *lexer) stateFn {
 		return lexRawString
 	}
 
+	// Check if r is a Unicode letter or an underscore character (_).
+	if isLetter(r) {
+		return lexKeywordOrIdent
+	}
+
 	panic("not yet implemented.")
+}
+
+// isLetter returns true if r is a Unicode letter or an underscore character
+// (_).
+func isLetter(r rune) bool {
+	return unicode.IsLetter(r) || r == '_'
 }
 
 // lexDivOrComment lexes a division operator (/), a division assignment operator
@@ -551,6 +563,54 @@ func lexRawString(l *lexer) stateFn {
 			return lexToken
 		}
 	}
+}
+
+// keywords specifies the reserved keywords of the Go programming language.
+var keywords = map[string]token.Kind{
+	"break":       token.Break,
+	"case":        token.Case,
+	"chan":        token.Chan,
+	"const":       token.Const,
+	"continue":    token.Continue,
+	"default":     token.Default,
+	"defer":       token.Defer,
+	"else":        token.Else,
+	"fallthrough": token.Fallthrough,
+	"for":         token.For,
+	"func":        token.Func,
+	"go":          token.Go,
+	"goto":        token.Goto,
+	"if":          token.If,
+	"import":      token.Import,
+	"interface":   token.Interface,
+	"map":         token.Map,
+	"package":     token.Package,
+	"range":       token.Range,
+	"return":      token.Return,
+	"select":      token.Select,
+	"struct":      token.Struct,
+	"switch":      token.Switch,
+	"type":        token.Type,
+	"var":         token.Var,
+}
+
+// lexKeywordOrIdent lexes a keyword, or an identifier. A Unicode letter or an
+// underscore character (_) has already been consumed.
+func lexKeywordOrIdent(l *lexer) stateFn {
+	for {
+		r := l.next()
+		if !isLetter(r) && !unicode.IsDigit(r) {
+			l.backup()
+			break
+		}
+	}
+	s := l.input[l.start:l.pos]
+	if kind, ok := keywords[s]; ok {
+		l.emit(kind)
+	} else {
+		l.emit(token.Ident)
+	}
+	return lexToken
 }
 
 // TODO(u): Add test case for insertSemicolon; ref: go/src/pkg/go/scanner/scanner_test.go:345
