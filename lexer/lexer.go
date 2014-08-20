@@ -20,10 +20,8 @@ import (
 // valid token.
 func Parse(input string) (tokens []token.Token) {
 	l := &lexer{
-		input: input,
-		// TODO(u): Fix cap; estimate the average token size by lexing the source
-		// code of the standard library.
-		tokens: make([]token.Token, 0, len(input)/3),
+		input:  input,
+		tokens: make([]token.Token, 0, len(input)/5),
 	}
 
 	// Tokenize the input.
