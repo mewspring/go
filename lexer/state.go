@@ -25,6 +25,8 @@ func lexToken(l *lexer) stateFn {
 	switch r {
 	case '/':
 		return lexDivOrComment
+	case '`':
+		return lexRawString
 	case '\n':
 		l.ignore()
 		insertSemicolon(l)
@@ -105,6 +107,20 @@ func lexGeneralComment(l *lexer) stateFn {
 	l.emit(token.Comment)
 
 	return lexToken
+}
+
+// lexRawString lexes a raw string literal (`foo`). A back quote character ('`')
+// has already been consumed.
+func lexRawString(l *lexer) stateFn {
+	for {
+		switch l.next() {
+		case eof:
+			return l.errorf("unexpected eof in raw string literal")
+		case '`':
+			l.emit(token.String)
+			return lexToken
+		}
+	}
 }
 
 // TODO(u): Add test case for insertSemicolon; ref: go/src/pkg/go/scanner/scanner_test.go:345
