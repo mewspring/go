@@ -14,8 +14,6 @@ const (
 	whitespace = " \t\r"
 	// decimal specifies the decimal digit characters.
 	decimal = "0123456789"
-	// octal specifies the octal digit characters.
-	octal = "01234567"
 	// hex specifies the hexadecimal digit characters.
 	hex = "0123456789ABCDEFabcdef"
 )
@@ -53,6 +51,8 @@ func lexToken(l *lexer) stateFn {
 		return lexGreaterOrShr
 	case '&':
 		return lexAndOrClear
+	case '|':
+		return lexOr
 	case '+':
 		return lexAddOrInc
 	case '-':
@@ -233,6 +233,26 @@ func lexAndOrClear(l *lexer) stateFn {
 		// Bitwise AND operator (&).
 		l.backup()
 		l.emit(token.And)
+	}
+	return lexToken
+}
+
+// lexOr lexes a bitwise OR operator (|), a bitwise OR assignment operator (|=),
+// or a logical OR operator (||). A vertical bar character (|) has already been
+// consumed.
+func lexOr(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '|':
+		// Logical OR operator (||).
+		l.emit(token.Lor)
+	case '=':
+		// Bitwise OR assignment operator (|=).
+		l.emit(token.OrAssign)
+	default:
+		// Bitwise OR operator (|).
+		l.backup()
+		l.emit(token.Or)
 	}
 	return lexToken
 }
