@@ -55,6 +55,8 @@ func lexToken(l *lexer) stateFn {
 		return lexOr
 	case '=':
 		return lexEqOrAssign
+	case ':':
+		return lexColonOrDeclAssign
 	case '*':
 		return lexMul
 	case '%':
@@ -277,6 +279,22 @@ func lexEqOrAssign(l *lexer) stateFn {
 		// Assignment operator (=).
 		l.backup()
 		l.emit(token.Assign)
+	}
+	return lexToken
+}
+
+// lexColonOrDeclAssign lexes a colon delimiter (:), or a declare and initialize
+// operator (:=). A colon character (:) has already been consumed.
+func lexColonOrDeclAssign(l *lexer) stateFn {
+	r := l.next()
+	switch r {
+	case '=':
+		// Declare and initialize operator (:=).
+		l.emit(token.DeclAssign)
+	default:
+		// Colon delimiter (:).
+		l.backup()
+		l.emit(token.Colon)
 	}
 	return lexToken
 }
