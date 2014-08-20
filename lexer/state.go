@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/mewlang/go/token"
@@ -25,6 +26,8 @@ func lexToken(l *lexer) stateFn {
 	switch r {
 	case '/':
 		return lexDivOrComment
+	case '"':
+		return lexString
 	case '`':
 		return lexRawString
 	case '\n':
@@ -107,6 +110,35 @@ func lexGeneralComment(l *lexer) stateFn {
 	l.emit(token.Comment)
 
 	return lexToken
+}
+
+// lexString lexes an interpreted string literal ("foo"). A double quote
+// character ('"') has already been consumed.
+func lexString(l *lexer) stateFn {
+	for {
+		switch l.next() {
+		case eof:
+			return l.errorf("unexpected eof in interpreted string literal")
+		case '\n':
+			return l.errorf("unexpected newline in interpreted string literal")
+		case '\\':
+			// Consume backslash escape sequence.
+			l.backup()
+			_, multibyte, tail, err := strconv.UnquoteChar(l.input[l.pos:], '"')
+			if err != nil {
+				return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
+			}
+			if multibyte {
+				delta := len(l.input[l.pos:]) - len(tail)
+				l.pos += delta
+			} else {
+				l.pos++
+			}
+		case '"':
+			l.emit(token.String)
+			return lexToken
+		}
+	}
 }
 
 // lexRawString lexes a raw string literal (`foo`). A back quote character ('`')
