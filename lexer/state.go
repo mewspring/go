@@ -6,6 +6,7 @@
 package lexer
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -700,7 +701,7 @@ func consumeEscape(l *lexer, valid rune) error {
 	r := l.next()
 	switch r {
 	case eof:
-		return fmt.Errorf("unexpected eof in escape sequence")
+		return errors.New("unexpected eof in escape sequence")
 	case '0', '1', '2', '3':
 		// Octal escape.
 		for i := 0; i < 2; i++ {
@@ -708,7 +709,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				r := l.next()
 				switch r {
 				case eof:
-					return fmt.Errorf("unexpected eof in octal escape")
+					return errors.New("unexpected eof in octal escape")
 				case valid:
 					return fmt.Errorf("too few digits in octal escape; expected 3, got %d", 1+i)
 				}
@@ -727,7 +728,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				r := l.next()
 				switch r {
 				case eof:
-					return fmt.Errorf("unexpected eof in hex escape")
+					return errors.New("unexpected eof in hex escape")
 				case valid:
 					return fmt.Errorf("too few digits in hex escape; expected 2, got %d", i)
 				}
@@ -745,7 +746,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				r := l.next()
 				switch r {
 				case eof:
-					return fmt.Errorf("unexpected eof in Unicode escape")
+					return errors.New("unexpected eof in Unicode escape")
 				case valid:
 					return fmt.Errorf("too few digits in Unicode escape; expected %d, got %d", n, i)
 				}
