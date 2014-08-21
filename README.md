@@ -23,8 +23,8 @@ This code is hereby released into the *[public domain][]*.
 
 [public domain]: https://creativecommons.org/publicdomain/zero/1.0/
 
-BSD
----
+BSD license
+-----------
 
 Any code or documentation directly derived from the [standard Go source code][]
 is governed by a [BSD license][].
