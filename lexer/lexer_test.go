@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/mewlang/go/token"
@@ -165,6 +166,147 @@ func TestParse(t *testing.T) {
 		got := tokens[i]
 		if got != g.want {
 			t.Errorf("i=%d: token mismatch; expected %v, got %v.", i, g.want, got)
+		}
+	}
+}
+
+func TestInsertSemicolon(t *testing.T) {
+	// test cases from go/src/pkg/scanner/scanner_test.go
+	golden := []struct {
+		in   string
+		want []token.Token
+	}{
+		{in: "", want: []token.Token{}},
+		{in: "\ufeff;", want: []token.Token{{Kind: token.Semicolon, Val: ";"}}},                                      // first BOM is ignored; a semicolon is present in the source
+		{in: ";", want: []token.Token{{Kind: token.Semicolon, Val: ";"}}},                                            // a semicolon is present in the source
+		{in: "foo\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}}},       // a semicolon was automatically inserted.
+		{in: "123\n", want: []token.Token{{Kind: token.Int, Val: "123"}, {Kind: token.Semicolon, Val: ";"}}},         // a semicolon was automatically inserted.
+		{in: "1.2\n", want: []token.Token{{Kind: token.Float, Val: "1.2"}, {Kind: token.Semicolon, Val: ";"}}},       // a semicolon was automatically inserted.
+		{in: "'x'\n", want: []token.Token{{Kind: token.Rune, Val: "'x'"}, {Kind: token.Semicolon, Val: ";"}}},        // a semicolon was automatically inserted.
+		{in: `"x"` + "\n", want: []token.Token{{Kind: token.String, Val: `"x"`}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "`x`\n", want: []token.Token{{Kind: token.String, Val: "`x`"}, {Kind: token.Semicolon, Val: ";"}}},      // a semicolon was automatically inserted.
+
+		{in: "+\n", want: []token.Token{{Kind: token.Add, Val: "+"}}},
+		{in: "-\n", want: []token.Token{{Kind: token.Sub, Val: "-"}}},
+		{in: "*\n", want: []token.Token{{Kind: token.Mul, Val: "*"}}},
+		{in: "/\n", want: []token.Token{{Kind: token.Div, Val: "/"}}},
+		{in: "%\n", want: []token.Token{{Kind: token.Mod, Val: "%"}}},
+
+		{in: "&\n", want: []token.Token{{Kind: token.And, Val: "&"}}},
+		{in: "|\n", want: []token.Token{{Kind: token.Or, Val: "|"}}},
+		{in: "^\n", want: []token.Token{{Kind: token.Xor, Val: "^"}}},
+		{in: "<<\n", want: []token.Token{{Kind: token.Shl, Val: "<<"}}},
+		{in: ">>\n", want: []token.Token{{Kind: token.Shr, Val: ">>"}}},
+		{in: "&^\n", want: []token.Token{{Kind: token.Clear, Val: "&^"}}},
+
+		{in: "+=\n", want: []token.Token{{Kind: token.AddAssign, Val: "+="}}},
+		{in: "-=\n", want: []token.Token{{Kind: token.SubAssign, Val: "-="}}},
+		{in: "*=\n", want: []token.Token{{Kind: token.MulAssign, Val: "*="}}},
+		{in: "/=\n", want: []token.Token{{Kind: token.DivAssign, Val: "/="}}},
+		{in: "%=\n", want: []token.Token{{Kind: token.ModAssign, Val: "%="}}},
+
+		{in: "&=\n", want: []token.Token{{Kind: token.AndAssign, Val: "&="}}},
+		{in: "|=\n", want: []token.Token{{Kind: token.OrAssign, Val: "|="}}},
+		{in: "^=\n", want: []token.Token{{Kind: token.XorAssign, Val: "^="}}},
+		{in: "<<=\n", want: []token.Token{{Kind: token.ShlAssign, Val: "<<="}}},
+		{in: ">>=\n", want: []token.Token{{Kind: token.ShrAssign, Val: ">>="}}},
+		{in: "&^=\n", want: []token.Token{{Kind: token.ClearAssign, Val: "&^="}}},
+
+		{in: "&&\n", want: []token.Token{{Kind: token.Land, Val: "&&"}}},
+		{in: "||\n", want: []token.Token{{Kind: token.Lor, Val: "||"}}},
+		{in: "<-\n", want: []token.Token{{Kind: token.Arrow, Val: "<-"}}},
+		{in: "++\n", want: []token.Token{{Kind: token.Inc, Val: "++"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "--\n", want: []token.Token{{Kind: token.Dec, Val: "--"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+
+		{in: "==\n", want: []token.Token{{Kind: token.Eq, Val: "=="}}},
+		{in: "<\n", want: []token.Token{{Kind: token.Lt, Val: "<"}}},
+		{in: ">\n", want: []token.Token{{Kind: token.Gt, Val: ">"}}},
+		{in: "=\n", want: []token.Token{{Kind: token.Assign, Val: "="}}},
+		{in: "!\n", want: []token.Token{{Kind: token.Not, Val: "!"}}},
+
+		{in: "!=\n", want: []token.Token{{Kind: token.Neq, Val: "!="}}},
+		{in: "<=\n", want: []token.Token{{Kind: token.Lte, Val: "<="}}},
+		{in: ">=\n", want: []token.Token{{Kind: token.Gte, Val: ">="}}},
+		{in: ":=\n", want: []token.Token{{Kind: token.DeclAssign, Val: ":="}}},
+		{in: "...\n", want: []token.Token{{Kind: token.Ellipsis, Val: "..."}}},
+
+		{in: "(\n", want: []token.Token{{Kind: token.Lparen, Val: "("}}},
+		{in: "[\n", want: []token.Token{{Kind: token.Lbrack, Val: "["}}},
+		{in: "{\n", want: []token.Token{{Kind: token.Lbrace, Val: "{"}}},
+		{in: ",\n", want: []token.Token{{Kind: token.Comma, Val: ","}}},
+		{in: ".\n", want: []token.Token{{Kind: token.Dot, Val: "."}}},
+
+		{in: ")\n", want: []token.Token{{Kind: token.Rparen, Val: ")"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "]\n", want: []token.Token{{Kind: token.Rbrack, Val: "]"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "}\n", want: []token.Token{{Kind: token.Rbrace, Val: "}"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: ";\n", want: []token.Token{{Kind: token.Semicolon, Val: ";"}}},                                 // a semicolon is present in the source
+		{in: ":\n", want: []token.Token{{Kind: token.Colon, Val: ":"}}},
+
+		{in: "break\n", want: []token.Token{{Kind: token.Break, Val: "break"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "case\n", want: []token.Token{{Kind: token.Case, Val: "case"}}},
+		{in: "chan\n", want: []token.Token{{Kind: token.Chan, Val: "chan"}}},
+		{in: "const\n", want: []token.Token{{Kind: token.Const, Val: "const"}}},
+		{in: "continue\n", want: []token.Token{{Kind: token.Continue, Val: "continue"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+
+		{in: "default\n", want: []token.Token{{Kind: token.Default, Val: "default"}}},
+		{in: "defer\n", want: []token.Token{{Kind: token.Defer, Val: "defer"}}},
+		{in: "else\n", want: []token.Token{{Kind: token.Else, Val: "else"}}},
+		{in: "fallthrough\n", want: []token.Token{{Kind: token.Fallthrough, Val: "fallthrough"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "for\n", want: []token.Token{{Kind: token.For, Val: "for"}}},
+
+		{in: "func\n", want: []token.Token{{Kind: token.Func, Val: "func"}}},
+		{in: "go\n", want: []token.Token{{Kind: token.Go, Val: "go"}}},
+		{in: "goto\n", want: []token.Token{{Kind: token.Goto, Val: "goto"}}},
+		{in: "if\n", want: []token.Token{{Kind: token.If, Val: "if"}}},
+		{in: "import\n", want: []token.Token{{Kind: token.Import, Val: "import"}}},
+
+		{in: "interface\n", want: []token.Token{{Kind: token.Interface, Val: "interface"}}},
+		{in: "map\n", want: []token.Token{{Kind: token.Map, Val: "map"}}},
+		{in: "package\n", want: []token.Token{{Kind: token.Package, Val: "package"}}},
+		{in: "range\n", want: []token.Token{{Kind: token.Range, Val: "range"}}},
+		{in: "return\n", want: []token.Token{{Kind: token.Return, Val: "return"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+
+		{in: "select\n", want: []token.Token{{Kind: token.Select, Val: "select"}}},
+		{in: "struct\n", want: []token.Token{{Kind: token.Struct, Val: "struct"}}},
+		{in: "switch\n", want: []token.Token{{Kind: token.Switch, Val: "switch"}}},
+		{in: "type\n", want: []token.Token{{Kind: token.Type, Val: "type"}}},
+		{in: "var\n", want: []token.Token{{Kind: token.Var, Val: "var"}}},
+
+		{in: "foo//comment\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "//comment"}}},         // a semicolon was automatically inserted.
+		{in: "foo//comment", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "//comment"}}},           // a semicolon was automatically inserted.
+		{in: "foo/*comment*/\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*comment*/"}}},     // a semicolon was automatically inserted.
+		{in: "foo/*\n*/", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*\n*/"}}},                 // a semicolon was automatically inserted.
+		{in: "foo/*comment*/    \n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*comment*/"}}}, // a semicolon was automatically inserted.
+		{in: "foo/*\n*/    ", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*\n*/"}}},             // a semicolon was automatically inserted.
+
+		{in: "foo    // comment\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "// comment"}}},                                                                                                                                                          // a semicolon was automatically inserted.
+		{in: "foo    // comment", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "// comment"}}},                                                                                                                                                            // a semicolon was automatically inserted.
+		{in: "foo    /*comment*/\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*comment*/"}}},                                                                                                                                                        // a semicolon was automatically inserted.
+		{in: "foo    /*\n*/", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*\n*/"}}},                                                                                                                                                                    // a semicolon was automatically inserted.
+		{in: "foo    /*  */ /* \n */ bar/**/\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*  */"}, {Kind: token.Comment, Val: "/* \n */"}, {Kind: token.Ident, Val: "bar"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/**/"}}}, // a semicolon was automatically inserted.
+		{in: "foo    /*0*/ /*1*/ /*2*/\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*0*/"}, {Kind: token.Comment, Val: "/*1*/"}, {Kind: token.Comment, Val: "/*2*/"}}},                                                                              // a semicolon was automatically inserted.
+
+		{in: "foo    /*comment*/    \n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*comment*/"}}},                                                                           // a semicolon was automatically inserted.
+		{in: "foo    /*0*/ /*1*/ /*2*/    \n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*0*/"}, {Kind: token.Comment, Val: "/*1*/"}, {Kind: token.Comment, Val: "/*2*/"}}}, // a semicolon was automatically inserted.
+		{in: "foo	/**/ /*-------------*/       /*----\n*/bar       /*  \n*/baa\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/**/"}, {Kind: token.Comment, Val: "/*-------------*/"}, {Kind: token.Comment, Val: "/*----\n*/"}, {Kind: token.Ident, Val: "bar"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*  \n*/"}, {Kind: token.Ident, Val: "baa"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}}},                                                                   // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */ /*", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}, {Kind: token.Error, Val: "unexpected eof in general comment"}}}, // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */ //", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}, {Kind: token.Comment, Val: "//"}}},                              // a semicolon was automatically inserted.
+
+		{in: "package main\n\nfunc main() {\n\tif {\n\t\treturn /* */ }\n}\n", want: []token.Token{{Kind: token.Package, Val: "package"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Func, Val: "func"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Lparen, Val: "("}, {Kind: token.Rparen, Val: ")"}, {Kind: token.Lbrace, Val: "{"}, {Kind: token.If, Val: "if"}, {Kind: token.Lbrace, Val: "{"}, {Kind: token.Return, Val: "return"}, {Kind: token.Comment, Val: "/* */"}, {Kind: token.Rbrace, Val: "}"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Rbrace, Val: "}"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+		{in: "package main", want: []token.Token{{Kind: token.Package, Val: "package"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
+	}
+
+	for i, g := range golden {
+		got := Parse(g.in)
+		if len(got) > 0 {
+			tok := got[len(got)-1]
+			if tok.Kind == token.EOF {
+				got = got[:len(got)-1]
+			}
+		}
+		if !reflect.DeepEqual(got, g.want) {
+			t.Errorf("i=%d: expected %v, got %v.", i, g.want, got)
 		}
 	}
 }
