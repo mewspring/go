@@ -8,7 +8,7 @@ import (
 	"github.com/mewlang/go/token"
 )
 
-// test cases from go/src/pkg/scanner/scanner_test.go
+// test cases derived from tokens in go/src/pkg/scanner/scanner_test.go
 var golden = []struct {
 	in   string
 	want token.Token
@@ -171,7 +171,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestInsertSemicolon(t *testing.T) {
-	// test cases from go/src/pkg/scanner/scanner_test.go
+	// test cases derived from lines in go/src/pkg/scanner/scanner_test.go
 	golden := []struct {
 		in   string
 		want []token.Token
@@ -308,5 +308,12 @@ func TestInsertSemicolon(t *testing.T) {
 		if !reflect.DeepEqual(got, g.want) {
 			t.Errorf("i=%d: expected %v, got %v.", i, g.want, got)
 		}
+	}
+}
+
+func BenchmarkParse(b *testing.B) {
+	b.SetBytes(int64(len(source)))
+	for i := 0; i < b.N; i++ {
+		Parse(source)
 	}
 }
