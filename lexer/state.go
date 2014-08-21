@@ -1,3 +1,8 @@
+// TODO(u): Disallow the following:
+//    * BOMs in the middle of the source code.
+//    * NULL characters in the middle of the source code.
+//    * Invalid UTF-8 encoding in the middle of the source code.
+
 package lexer
 
 import (
@@ -27,8 +32,8 @@ const (
 // state function.
 type stateFn func(l *lexer) stateFn
 
-// lexSkipBOM skips the first BOM sequence. It is the initial state function of
-// the lexer.
+// lexSkipBOM skips the first UTF-8 BOM sequence. It is the initial state
+// function of the lexer.
 //
 // For compatibility with other tools, a compiler may ignore a UTF-8-encoded
 // byte order mark (U+FEFF) if it is the first Unicode code point in the source
@@ -132,7 +137,15 @@ func lexToken(l *lexer) stateFn {
 		return lexKeywordOrIdent
 	}
 
-	return l.errorf("syntax error; unexpected %q", r)
+	return l.errorf("syntax error: unexpected %v", pretty(r))
+}
+
+// pretty returns a pretty printed version of r.
+func pretty(r rune) string {
+	if unicode.IsPrint(r) {
+		return fmt.Sprintf("%U %q", r, r)
+	}
+	return fmt.Sprintf("%U", r)
 }
 
 // isLetter returns true if r is a Unicode letter or an underscore, and false
@@ -170,8 +183,6 @@ func lexLineComment(l *lexer) stateFn {
 	for {
 		switch l.next() {
 		case eof:
-			// TODO(u): Insert semicolon?
-
 			// Strip carriage returns.
 			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
 			l.emitCustom(token.Comment, s)
@@ -199,7 +210,7 @@ func lexGeneralComment(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			insertSemicolon(l)
-			return l.errorf("unexpected eof in general comment")
+			return l.errorf("unexpected eof in comment")
 		case '\n':
 			hasNewline = true
 		}
@@ -459,7 +470,7 @@ func lexDotOrNumber(l *lexer) stateFn {
 		// Early return for hexadecimal constant.
 		if l.accept("xX") {
 			if !l.acceptRun(hex) {
-				return l.errorf("malformed hexadecimal constant")
+				return l.errorf("missing digits in hexadecimal constant")
 			}
 			l.emit(token.Int)
 			return lexToken
@@ -502,13 +513,22 @@ func lexDotOrNumber(l *lexer) stateFn {
 		l.accept("+-")
 
 		if !l.acceptRun(decimal) {
-			return l.errorf("malformed exponent of floating-point constant")
+			return l.errorf("missing digits in floating-point exponent")
 		}
 	}
 
 	// Imaginary.
 	if l.accept("i") {
 		kind = token.Imag
+	}
+
+	// Validate octal numbers.
+	if kind == token.Int {
+		if s := l.input[l.start:l.pos]; s[0] == '0' {
+			if pos := strings.IndexAny(s, "89"); pos != -1 {
+				return l.errorf("invalid digit %q in octal constant", s[pos])
+			}
+		}
 	}
 
 	l.emit(kind)
@@ -518,24 +538,36 @@ func lexDotOrNumber(l *lexer) stateFn {
 // lexRune lexes a rune literal ('a'). A single quote character (') has already
 // been consumed.
 func lexRune(l *lexer) stateFn {
+	// Consume one or more characters enclosed in single quotes.
 	switch l.next() {
 	case eof:
 		// TODO(u): Insert semicolon?
 		return l.errorf("unexpected eof in rune literal")
 	case '\n':
 		return l.errorf("unexpected newline in rune literal")
+	case '\'':
+		return l.errorf("empty rune literal or unescaped ' in rune literal")
 	case '\\':
 		// Consume backslash escape sequence.
 		err := consumeEscape(l, '\'')
 		if err != nil {
-			return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
+			return l.errorf(err.Error())
 		}
 	}
-	if !l.accept("'") {
-		return l.errorf("missing ' in rune literal")
+
+	// Consume closing single quote.
+	switch l.next() {
+	case eof:
+		// TODO(u): Insert semicolon?
+		return l.errorf("unexpected eof in rune literal")
+	case '\n':
+		return l.errorf("unexpected newline in rune literal")
+	case '\'':
+		l.emit(token.Rune)
+		return lexToken
+	default:
+		return l.errorf("too many characters in rune literal")
 	}
-	l.emit(token.Rune)
-	return lexToken
 }
 
 // lexString lexes an interpreted string literal ("foo"). A double quote
@@ -545,14 +577,14 @@ func lexString(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			// TODO(u): Insert semicolon?
-			return l.errorf("unexpected eof in interpreted string literal")
+			return l.errorf("unexpected eof in string literal")
 		case '\n':
-			return l.errorf("unexpected newline in interpreted string literal")
+			return l.errorf("unexpected newline in string literal")
 		case '\\':
 			// Consume backslash escape sequence.
 			err := consumeEscape(l, '"')
 			if err != nil {
-				return l.errorf("invalid escape sequence in interpreted string literal; %v", err)
+				return l.errorf(err.Error())
 			}
 		case '"':
 			l.emit(token.String)
@@ -613,7 +645,6 @@ func lexKeywordOrIdent(l *lexer) stateFn {
 	for {
 		r := l.next()
 		if r == eof {
-			// TODO(u): Insert semicolon?
 			break
 		}
 		if !isLetter(r) && !unicode.IsDigit(r) {
@@ -668,10 +699,21 @@ func lexKeywordOrIdent(l *lexer) stateFn {
 func consumeEscape(l *lexer, valid rune) error {
 	r := l.next()
 	switch r {
+	case eof:
+		return fmt.Errorf("unexpected eof in escape sequence")
 	case '0', '1', '2', '3':
 		// Octal escape.
-		if !l.accept(octal) || !l.accept(octal) {
-			return fmt.Errorf("non-octal character %q in octal escape", l.next())
+		for i := 0; i < 2; i++ {
+			if !l.accept(octal) {
+				r := l.next()
+				switch r {
+				case eof:
+					return fmt.Errorf("unexpected eof in octal escape")
+				case valid:
+					return fmt.Errorf("too few digits in octal escape; expected 3, got %d", 1+i)
+				}
+				return fmt.Errorf("non-octal character %v in octal escape", pretty(r))
+			}
 		}
 		s := l.input[l.pos-3 : l.pos]
 		_, err := strconv.ParseUint(s, 8, 8)
@@ -680,8 +722,17 @@ func consumeEscape(l *lexer, valid rune) error {
 		}
 	case 'x':
 		// Hexadecimal escape.
-		if !l.accept(hex) || !l.accept(hex) {
-			return fmt.Errorf("non-hex character %q in hex escape", l.next())
+		for i := 0; i < 2; i++ {
+			if !l.accept(hex) {
+				r := l.next()
+				switch r {
+				case eof:
+					return fmt.Errorf("unexpected eof in hex escape")
+				case valid:
+					return fmt.Errorf("too few digits in hex escape; expected 2, got %d", i)
+				}
+				return fmt.Errorf("non-hex character %v in hex escape", pretty(r))
+			}
 		}
 	case 'u', 'U':
 		// Unicode escape.
@@ -691,7 +742,14 @@ func consumeEscape(l *lexer, valid rune) error {
 		}
 		for i := 0; i < n; i++ {
 			if !l.accept(hex) {
-				return fmt.Errorf("non-hex character %q in Unicode escape", l.next())
+				r := l.next()
+				switch r {
+				case eof:
+					return fmt.Errorf("unexpected eof in Unicode escape")
+				case valid:
+					return fmt.Errorf("too few digits in Unicode escape; expected %d, got %d", n, i)
+				}
+				return fmt.Errorf("non-hex character %v in Unicode escape", pretty(r))
 			}
 		}
 		s := l.input[l.pos-n : l.pos]
@@ -701,12 +759,12 @@ func consumeEscape(l *lexer, valid rune) error {
 		}
 		r := rune(x)
 		if !utf8.ValidRune(r) {
-			return fmt.Errorf("invalid rune %q in Unicode escape", r)
+			return fmt.Errorf("invalid Unicode code point %v in escape sequence", pretty(r))
 		}
 	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', valid:
 		// Single-character escape.
 	default:
-		return fmt.Errorf("unknown escape sequence: %q", r)
+		return fmt.Errorf("unknown escape sequence %v", pretty(r))
 	}
 	return nil
 }
