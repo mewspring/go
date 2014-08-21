@@ -27,8 +27,28 @@ const (
 // state function.
 type stateFn func(l *lexer) stateFn
 
-// lexToken lexes a token of the Go programming language. It is the initial
-// state function of the lexer.
+// lexSkipBOM skips the first BOM sequence. It is the initial state function of
+// the lexer.
+//
+// For compatibility with other tools, a compiler may ignore a UTF-8-encoded
+// byte order mark (U+FEFF) if it is the first Unicode code point in the source
+// text. A byte order mark may be disallowed anywhere else in the source.
+//
+// ref: http://golang.org/ref/spec#Source_code_representation
+func lexSkipBOM(l *lexer) stateFn {
+	switch l.next() {
+	case eof:
+		l.emit(token.EOF)
+		return nil
+	case '\uFEFF':
+		l.ignore()
+	default:
+		l.backup()
+	}
+	return lexToken
+}
+
+// lexToken lexes a token of the Go programming language.
 func lexToken(l *lexer) stateFn {
 	// Ignore white space characters (except newline).
 	l.ignoreRun(whitespace)
@@ -150,6 +170,8 @@ func lexLineComment(l *lexer) stateFn {
 	for {
 		switch l.next() {
 		case eof:
+			// TODO(u): Insert semicolon?
+
 			// Strip carriage returns.
 			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
 			l.emitCustom(token.Comment, s)
@@ -176,6 +198,7 @@ func lexGeneralComment(l *lexer) stateFn {
 	for !strings.HasSuffix(l.input[l.start:l.pos], "*/") {
 		switch l.next() {
 		case eof:
+			insertSemicolon(l)
 			return l.errorf("unexpected eof in general comment")
 		case '\n':
 			hasNewline = true
@@ -497,6 +520,7 @@ func lexDotOrNumber(l *lexer) stateFn {
 func lexRune(l *lexer) stateFn {
 	switch l.next() {
 	case eof:
+		// TODO(u): Insert semicolon?
 		return l.errorf("unexpected eof in rune literal")
 	case '\n':
 		return l.errorf("unexpected newline in rune literal")
@@ -520,6 +544,7 @@ func lexString(l *lexer) stateFn {
 	for {
 		switch l.next() {
 		case eof:
+			// TODO(u): Insert semicolon?
 			return l.errorf("unexpected eof in interpreted string literal")
 		case '\n':
 			return l.errorf("unexpected newline in interpreted string literal")
@@ -542,6 +567,7 @@ func lexRawString(l *lexer) stateFn {
 	for {
 		switch l.next() {
 		case eof:
+			// TODO(u): Insert semicolon?
 			return l.errorf("unexpected eof in raw string literal")
 		case '`':
 			// Strip carriage returns.
@@ -586,6 +612,10 @@ var keywords = map[string]token.Kind{
 func lexKeywordOrIdent(l *lexer) stateFn {
 	for {
 		r := l.next()
+		if r == eof {
+			// TODO(u): Insert semicolon?
+			break
+		}
 		if !isLetter(r) && !unicode.IsDigit(r) {
 			l.backup()
 			break

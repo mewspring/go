@@ -49,8 +49,8 @@ type lexer struct {
 // lex lexes the input by repeatedly executing the active state function until
 // it returns a nil state.
 func (l *lexer) lex() {
-	// lexToken is the initial state function of the lexer.
-	for state := lexToken; state != nil; {
+	// lexSkipBOM is the initial state function of the lexer.
+	for state := lexSkipBOM; state != nil; {
 		state = state(l)
 	}
 }
