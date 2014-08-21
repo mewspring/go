@@ -29,7 +29,10 @@ func lex(path string) error {
 	}
 	input := string(buf)
 
-	tokens := lexer.Parse(input)
+	tokens, err := lexer.Parse(input)
+	if err != nil {
+		return err
+	}
 	for _, token := range tokens {
 		fmt.Println("token:", token)
 	}

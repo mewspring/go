@@ -159,7 +159,10 @@ func TestParse(t *testing.T) {
 		insertSemicolon = f
 	}()
 
-	tokens := Parse(source)
+	tokens, err := Parse(source)
+	if err != nil {
+		t.Fatalf("Parse failed; %v", err)
+	}
 	for i, g := range golden {
 		if i >= len(tokens) {
 			t.Fatalf("too few tokens; expected >= %d, got %d.", len(golden), len(tokens))
@@ -175,6 +178,7 @@ func TestInsertSemicolon(t *testing.T) {
 	// test cases derived from lines in go/src/pkg/scanner/scanner_test.go
 	golden := []struct {
 		in   string
+		err  string
 		want []token.Token
 	}{
 		{in: "", want: []token.Token{}},
@@ -290,16 +294,20 @@ func TestInsertSemicolon(t *testing.T) {
 		{in: "foo    /*comment*/    \n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*comment*/"}}},                                                                           // a semicolon was automatically inserted.
 		{in: "foo    /*0*/ /*1*/ /*2*/    \n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*0*/"}, {Kind: token.Comment, Val: "/*1*/"}, {Kind: token.Comment, Val: "/*2*/"}}}, // a semicolon was automatically inserted.
 		{in: "foo	/**/ /*-------------*/       /*----\n*/bar       /*  \n*/baa\n", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/**/"}, {Kind: token.Comment, Val: "/*-------------*/"}, {Kind: token.Comment, Val: "/*----\n*/"}, {Kind: token.Ident, Val: "bar"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/*  \n*/"}, {Kind: token.Ident, Val: "baa"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
-		{in: "foo    /* an EOF terminates a line */", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}}},                                                           // a semicolon was automatically inserted.
-		{in: "foo    /* an EOF terminates a line */ /*", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}, {Kind: token.Error, Val: "unexpected eof in comment"}}}, // a semicolon was automatically inserted.
-		{in: "foo    /* an EOF terminates a line */ //", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}, {Kind: token.Comment, Val: "//"}}},                      // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}}},                                      // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */ /*", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}}, err: "unexpected eof in comment"}, // a semicolon was automatically inserted.
+		{in: "foo    /* an EOF terminates a line */ //", want: []token.Token{{Kind: token.Ident, Val: "foo"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Comment, Val: "/* an EOF terminates a line */"}, {Kind: token.Comment, Val: "//"}}}, // a semicolon was automatically inserted.
 
 		{in: "package main\n\nfunc main() {\n\tif {\n\t\treturn /* */ }\n}\n", want: []token.Token{{Kind: token.Package, Val: "package"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Func, Val: "func"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Lparen, Val: "("}, {Kind: token.Rparen, Val: ")"}, {Kind: token.Lbrace, Val: "{"}, {Kind: token.If, Val: "if"}, {Kind: token.Lbrace, Val: "{"}, {Kind: token.Return, Val: "return"}, {Kind: token.Comment, Val: "/* */"}, {Kind: token.Rbrace, Val: "}"}, {Kind: token.Semicolon, Val: ";"}, {Kind: token.Rbrace, Val: "}"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
 		{in: "package main", want: []token.Token{{Kind: token.Package, Val: "package"}, {Kind: token.Ident, Val: "main"}, {Kind: token.Semicolon, Val: ";"}}}, // a semicolon was automatically inserted.
 	}
 
 	for i, g := range golden {
-		got := Parse(g.in)
+		got, err := Parse(g.in)
+		if err != nil && err.Error() != g.err {
+			t.Errorf("i=%d: Parse failed; %v", i, err)
+			continue
+		}
 		if len(got) > 0 {
 			tok := got[len(got)-1]
 			if tok.Kind == token.EOF {
@@ -316,90 +324,103 @@ func TestParseErrors(t *testing.T) {
 	// test cases derived from errors in go/src/pkg/scanner/scanner_test.go
 	golden := []struct {
 		in   string
+		err  string
 		want token.Token
 	}{
-		{in: "\a", want: token.Token{Kind: token.Error, Val: "syntax error: unexpected U+0007"}},
-		{in: `#`, want: token.Token{Kind: token.Error, Val: "syntax error: unexpected U+0023 '#'"}},
-		{in: `…`, want: token.Token{Kind: token.Error, Val: "syntax error: unexpected U+2026 '…'"}},
+		{in: "\a", err: "syntax error: unexpected U+0007"},
+		{in: `#`, err: "syntax error: unexpected U+0023 '#'"},
+		{in: `…`, err: "syntax error: unexpected U+2026 '…'"},
 		{in: `' '`, want: token.Token{Kind: token.Rune, Val: "' '"}},
-		{in: `''`, want: token.Token{Kind: token.Error, Val: "empty rune literal or unescaped ' in rune literal"}},
-		{in: `'12'`, want: token.Token{Kind: token.Error, Val: "too many characters in rune literal"}},
-		{in: `'123'`, want: token.Token{Kind: token.Error, Val: "too many characters in rune literal"}},
-		{in: `'\0'`, want: token.Token{Kind: token.Error, Val: "too few digits in octal escape; expected 3, got 1"}},
-		{in: `'\07'`, want: token.Token{Kind: token.Error, Val: "too few digits in octal escape; expected 3, got 2"}},
-		{in: `'\8'`, want: token.Token{Kind: token.Error, Val: "unknown escape sequence U+0038 '8'"}},
-		{in: `'\08'`, want: token.Token{Kind: token.Error, Val: "non-octal character U+0038 '8' in octal escape"}},
-		{in: `'\0`, want: token.Token{Kind: token.Error, Val: "unexpected eof in octal escape"}},
-		{in: `'\00`, want: token.Token{Kind: token.Error, Val: "unexpected eof in octal escape"}},
-		{in: `'\000`, want: token.Token{Kind: token.Error, Val: "unexpected eof in rune literal"}},
-		{in: `'\x'`, want: token.Token{Kind: token.Error, Val: "too few digits in hex escape; expected 2, got 0"}},
-		{in: `'\x0'`, want: token.Token{Kind: token.Error, Val: "too few digits in hex escape; expected 2, got 1"}},
-		{in: `'\x0g'`, want: token.Token{Kind: token.Error, Val: "non-hex character U+0067 'g' in hex escape"}},
-		{in: `'\x`, want: token.Token{Kind: token.Error, Val: "unexpected eof in hex escape"}},
-		{in: `'\x0`, want: token.Token{Kind: token.Error, Val: "unexpected eof in hex escape"}},
-		{in: `'\x00`, want: token.Token{Kind: token.Error, Val: "unexpected eof in rune literal"}},
-		{in: `'\u'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 4, got 0"}},
-		{in: `'\u0'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 4, got 1"}},
-		{in: `'\u00'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 4, got 2"}},
-		{in: `'\u000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 4, got 3"}},
-		{in: `'\u000`, want: token.Token{Kind: token.Error, Val: "unexpected eof in Unicode escape"}},
+		{in: `''`, err: "empty rune literal or unescaped ' in rune literal"},
+		{in: `'12'`, err: "too many characters in rune literal"},
+		{in: `'123'`, err: "too many characters in rune literal"},
+		{in: `'\0'`, err: "too few digits in octal escape; expected 3, got 1"},
+		{in: `'\07'`, err: "too few digits in octal escape; expected 3, got 2"},
+		{in: `'\8'`, err: "unknown escape sequence U+0038 '8'"},
+		{in: `'\08'`, err: "non-octal character U+0038 '8' in octal escape"},
+		{in: `'\0`, err: "unexpected eof in octal escape"},
+		{in: `'\00`, err: "unexpected eof in octal escape"},
+		{in: `'\000`, err: "unexpected eof in rune literal"},
+		{in: `'\x'`, err: "too few digits in hex escape; expected 2, got 0"},
+		{in: `'\x0'`, err: "too few digits in hex escape; expected 2, got 1"},
+		{in: `'\x0g'`, err: "non-hex character U+0067 'g' in hex escape"},
+		{in: `'\x`, err: "unexpected eof in hex escape"},
+		{in: `'\x0`, err: "unexpected eof in hex escape"},
+		{in: `'\x00`, err: "unexpected eof in rune literal"},
+		{in: `'\u'`, err: "too few digits in Unicode escape; expected 4, got 0"},
+		{in: `'\u0'`, err: "too few digits in Unicode escape; expected 4, got 1"},
+		{in: `'\u00'`, err: "too few digits in Unicode escape; expected 4, got 2"},
+		{in: `'\u000'`, err: "too few digits in Unicode escape; expected 4, got 3"},
+		{in: `'\u000`, err: "unexpected eof in Unicode escape"},
 		{in: `'\u0000'`, want: token.Token{Kind: token.Rune, Val: `'\u0000'`}},
-		{in: `'\U'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 0"}},
-		{in: `'\U0'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 1"}},
-		{in: `'\U00'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 2"}},
-		{in: `'\U000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 3"}},
-		{in: `'\U0000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 4"}},
-		{in: `'\U00000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 5"}},
-		{in: `'\U000000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 6"}},
-		{in: `'\U0000000'`, want: token.Token{Kind: token.Error, Val: "too few digits in Unicode escape; expected 8, got 7"}},
-		{in: `'\U0000000`, want: token.Token{Kind: token.Error, Val: "unexpected eof in Unicode escape"}},
+		{in: `'\U'`, err: "too few digits in Unicode escape; expected 8, got 0"},
+		{in: `'\U0'`, err: "too few digits in Unicode escape; expected 8, got 1"},
+		{in: `'\U00'`, err: "too few digits in Unicode escape; expected 8, got 2"},
+		{in: `'\U000'`, err: "too few digits in Unicode escape; expected 8, got 3"},
+		{in: `'\U0000'`, err: "too few digits in Unicode escape; expected 8, got 4"},
+		{in: `'\U00000'`, err: "too few digits in Unicode escape; expected 8, got 5"},
+		{in: `'\U000000'`, err: "too few digits in Unicode escape; expected 8, got 6"},
+		{in: `'\U0000000'`, err: "too few digits in Unicode escape; expected 8, got 7"},
+		{in: `'\U0000000`, err: "unexpected eof in Unicode escape"},
 		{in: `'\U00000000'`, want: token.Token{Kind: token.Rune, Val: `'\U00000000'`}},
-		{in: `'\Uffffffff'`, want: token.Token{Kind: token.Error, Val: "invalid Unicode code point U+FFFFFFFFFFFFFFFF in escape sequence"}},
-		{in: `'\U0g'`, want: token.Token{Kind: token.Error, Val: "non-hex character U+0067 'g' in Unicode escape"}},
-		{in: `'`, want: token.Token{Kind: token.Error, Val: "unexpected eof in rune literal"}},
-		{in: `'\`, want: token.Token{Kind: token.Error, Val: "unexpected eof in escape sequence"}},
-		{in: "'\n", want: token.Token{Kind: token.Error, Val: "unexpected newline in rune literal"}},
-		{in: "'\n ", want: token.Token{Kind: token.Error, Val: "unexpected newline in rune literal"}},
-		{in: "'x", want: token.Token{Kind: token.Error, Val: "unexpected eof in rune literal"}},
-		{in: "'x\n", want: token.Token{Kind: token.Error, Val: "unexpected newline in rune literal"}},
+		{in: `'\Uffffffff'`, err: "invalid Unicode code point U+FFFFFFFFFFFFFFFF in escape sequence"},
+		{in: `'\U0g'`, err: "non-hex character U+0067 'g' in Unicode escape"},
+		{in: `'`, err: "unexpected eof in rune literal"},
+		{in: `'\`, err: "unexpected eof in escape sequence"},
+		{in: "'\n", err: "unexpected newline in rune literal"},
+		{in: "'\n ", err: "unexpected newline in rune literal"},
+		{in: "'x", err: "unexpected eof in rune literal"},
+		{in: "'x\n", err: "unexpected newline in rune literal"},
 		{in: `""`, want: token.Token{Kind: token.String, Val: `""`}},
-		{in: `"abc`, want: token.Token{Kind: token.Error, Val: "unexpected eof in string literal"}},
-		{in: "\"abc\n", want: token.Token{Kind: token.Error, Val: "unexpected newline in string literal"}},
-		{in: "\"abc\n ", want: token.Token{Kind: token.Error, Val: "unexpected newline in string literal"}},
-		{in: `"\q"`, want: token.Token{Kind: token.Error, Val: "unknown escape sequence U+0071 'q'"}},
+		{in: `"abc`, err: "unexpected eof in string literal"},
+		{in: "\"abc\n", err: "unexpected newline in string literal"},
+		{in: "\"abc\n ", err: "unexpected newline in string literal"},
+		{in: `"\q"`, err: "unknown escape sequence U+0071 'q'"},
 		{in: "``", want: token.Token{Kind: token.String, Val: "``"}},
-		{in: "`", want: token.Token{Kind: token.Error, Val: "unexpected eof in raw string literal"}},
+		{in: "`", err: "unexpected eof in raw string literal"},
 		{in: "/**/", want: token.Token{Kind: token.Comment, Val: "/**/"}},
-		{in: "/*", want: token.Token{Kind: token.Error, Val: "unexpected eof in comment"}},
+		{in: "/*", err: "unexpected eof in comment"},
 		{in: "077", want: token.Token{Kind: token.Int, Val: "077"}},
 		{in: "078.", want: token.Token{Kind: token.Float, Val: "078."}},
 		{in: "07801234567.", want: token.Token{Kind: token.Float, Val: "07801234567."}},
 		{in: "078e0", want: token.Token{Kind: token.Float, Val: "078e0"}},
-		{in: "078", want: token.Token{Kind: token.Error, Val: "invalid digit '8' in octal constant"}},
-		{in: "07800000009", want: token.Token{Kind: token.Error, Val: "invalid digit '8' in octal constant"}},
-		{in: "079", want: token.Token{Kind: token.Error, Val: "invalid digit '9' in octal constant"}},
-		{in: "0x", want: token.Token{Kind: token.Error, Val: "missing digits in hexadecimal constant"}},
-		{in: "0X", want: token.Token{Kind: token.Error, Val: "missing digits in hexadecimal constant"}},
-		{in: ".3e", want: token.Token{Kind: token.Error, Val: "missing digits in floating-point exponent"}},
-		{in: "3.14E", want: token.Token{Kind: token.Error, Val: "missing digits in floating-point exponent"}},
-		{in: "5e", want: token.Token{Kind: token.Error, Val: "missing digits in floating-point exponent"}},
-		//{in: "\"abc\x00def\"", want: token.Token{Kind: token.Error, Val: "illegal character NUL"}},
-		//{in: "\"abc\x80def\"", want: token.Token{Kind: token.Error, Val: "illegal UTF-8 encoding"}},
-		//{in: "\ufeff\ufeff", want: token.Token{Kind: token.Error, Val: "illegal byte order mark"}},             // only first BOM is ignored
-		//{in: "//\ufeff", want: token.Token{Kind: token.Error, Val: "illegal byte order mark"}},                 // only first BOM is ignored
-		//{in: "'\ufeff" + `'`, want: token.Token{Kind: token.Error, Val: "illegal byte order mark"}},            // only first BOM is ignored
-		//{in: `"` + "abc\ufeffdef" + `"`, want: token.Token{Kind: token.Error, Val: "illegal byte order mark"}}, // only first BOM is ignored
+		{in: "078", err: "invalid digit '8' in octal constant"},
+		{in: "07800000009", err: "invalid digit '8' in octal constant"},
+		{in: "079", err: "invalid digit '9' in octal constant"},
+		{in: "0x", err: "missing digits in hexadecimal constant"},
+		{in: "0X", err: "missing digits in hexadecimal constant"},
+		{in: ".3e", err: "missing digits in floating-point exponent"},
+		{in: "3.14E", err: "missing digits in floating-point exponent"},
+		{in: "5e", err: "missing digits in floating-point exponent"},
+		//{in: "\"abc\x00def\"", err: "illegal character NUL"},
+		//{in: "\"abc\x80def\"", err: "illegal UTF-8 encoding"},
+		//{in: "\ufeff\ufeff", err: "illegal byte order mark"},             // only first BOM is ignored.
+		//{in: "//\ufeff", err: "illegal byte order mark"},                 // only first BOM is ignored.
+		//{in: "'\ufeff" + `'`, err: "illegal byte order mark"},            // only first BOM is ignored.
+		//{in: `"` + "abc\ufeffdef" + `"`, err: "illegal byte order mark"}, // only first BOM is ignored.
 	}
 
 	for i, g := range golden {
-		tokens := Parse(g.in)
+		tokens, err := Parse(g.in)
+		errstr := ""
+		if err != nil {
+			errstr = err.Error()
+		}
+		if g.err != errstr {
+			t.Errorf("i=%d: error mismatch; expected %v, got %v.", i, g.err, errstr)
+			continue
+		}
+		zero := token.Token{}
+		if g.want == zero {
+			continue
+		}
 		if len(tokens) < 1 {
 			t.Errorf("too few tokens; expected >= 1, got %d.", len(tokens))
 			continue
 		}
 		got := tokens[0]
 		if got != g.want {
-			t.Errorf("i=%d: expected %v, got %v.", i, g.want, got)
+			t.Errorf("i=%d: token mismatch; expected %v, got %v.", i, g.want, got)
 		}
 	}
 }

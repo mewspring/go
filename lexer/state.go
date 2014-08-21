@@ -3,6 +3,10 @@
 //    * NULL characters in the middle of the source code.
 //    * Invalid UTF-8 encoding in the middle of the source code.
 
+// TODO(u): Evaluate which errors that should terminate lexing. Search for
+// l.errorf and l.errs, and determine if any other state function than nil could
+// continue lexing.
+
 package lexer
 
 import (
@@ -138,7 +142,8 @@ func lexToken(l *lexer) stateFn {
 		return lexKeywordOrIdent
 	}
 
-	return l.errorf("syntax error: unexpected %v", pretty(r))
+	l.errorf("syntax error: unexpected %v", pretty(r))
+	return nil
 }
 
 // pretty returns a pretty printed version of r.
@@ -211,7 +216,8 @@ func lexGeneralComment(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			insertSemicolon(l)
-			return l.errorf("unexpected eof in comment")
+			l.errorf("unexpected eof in comment")
+			return nil
 		case '\n':
 			hasNewline = true
 		}
@@ -471,7 +477,8 @@ func lexDotOrNumber(l *lexer) stateFn {
 		// Early return for hexadecimal constant.
 		if l.accept("xX") {
 			if !l.acceptRun(hex) {
-				return l.errorf("missing digits in hexadecimal constant")
+				l.errorf("missing digits in hexadecimal constant")
+				return nil
 			}
 			l.emit(token.Int)
 			return lexToken
@@ -514,7 +521,8 @@ func lexDotOrNumber(l *lexer) stateFn {
 		l.accept("+-")
 
 		if !l.acceptRun(decimal) {
-			return l.errorf("missing digits in floating-point exponent")
+			l.errorf("missing digits in floating-point exponent")
+			return nil
 		}
 	}
 
@@ -527,7 +535,8 @@ func lexDotOrNumber(l *lexer) stateFn {
 	if kind == token.Int {
 		if s := l.input[l.start:l.pos]; s[0] == '0' {
 			if pos := strings.IndexAny(s, "89"); pos != -1 {
-				return l.errorf("invalid digit %q in octal constant", s[pos])
+				l.errorf("invalid digit %q in octal constant", s[pos])
+				return nil
 			}
 		}
 	}
@@ -543,16 +552,20 @@ func lexRune(l *lexer) stateFn {
 	switch l.next() {
 	case eof:
 		// TODO(u): Insert semicolon?
-		return l.errorf("unexpected eof in rune literal")
+		l.errorf("unexpected eof in rune literal")
+		return nil
 	case '\n':
-		return l.errorf("unexpected newline in rune literal")
+		l.errorf("unexpected newline in rune literal")
+		return nil
 	case '\'':
-		return l.errorf("empty rune literal or unescaped ' in rune literal")
+		l.errorf("empty rune literal or unescaped ' in rune literal")
+		return nil
 	case '\\':
 		// Consume backslash escape sequence.
 		err := consumeEscape(l, '\'')
 		if err != nil {
-			return l.errorf(err.Error())
+			l.errs = append(l.errs, err)
+			return nil
 		}
 	}
 
@@ -560,14 +573,17 @@ func lexRune(l *lexer) stateFn {
 	switch l.next() {
 	case eof:
 		// TODO(u): Insert semicolon?
-		return l.errorf("unexpected eof in rune literal")
+		l.errorf("unexpected eof in rune literal")
+		return nil
 	case '\n':
-		return l.errorf("unexpected newline in rune literal")
+		l.errorf("unexpected newline in rune literal")
+		return nil
 	case '\'':
 		l.emit(token.Rune)
 		return lexToken
 	default:
-		return l.errorf("too many characters in rune literal")
+		l.errorf("too many characters in rune literal")
+		return nil
 	}
 }
 
@@ -578,14 +594,17 @@ func lexString(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			// TODO(u): Insert semicolon?
-			return l.errorf("unexpected eof in string literal")
+			l.errorf("unexpected eof in string literal")
+			return nil
 		case '\n':
-			return l.errorf("unexpected newline in string literal")
+			l.errorf("unexpected newline in string literal")
+			return nil
 		case '\\':
 			// Consume backslash escape sequence.
 			err := consumeEscape(l, '"')
 			if err != nil {
-				return l.errorf(err.Error())
+				l.errs = append(l.errs, err)
+				return nil
 			}
 		case '"':
 			l.emit(token.String)
@@ -601,7 +620,8 @@ func lexRawString(l *lexer) stateFn {
 		switch l.next() {
 		case eof:
 			// TODO(u): Insert semicolon?
-			return l.errorf("unexpected eof in raw string literal")
+			l.errorf("unexpected eof in raw string literal")
+			return nil
 		case '`':
 			// Strip carriage returns.
 			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)

@@ -15,10 +15,12 @@ import (
 	"github.com/mewlang/go/token"
 )
 
-// Parse lexes the input string into a slice of tokens. While breaking the input
-// into tokens, the next token is the longest sequence of characters that form a
-// valid token.
-func Parse(input string) (tokens []token.Token) {
+// Parse lexes the input string into a slice of tokens. The underlying type of
+// the returned error is ErrorList, and it contains a list of errors that
+// occurred while lexing. ErrorList implements the error interface by returning
+// the first error of the list from its Error method. Use type assertion to gain
+// access to the entire list of errors.
+func Parse(input string) (tokens []token.Token, err error) {
 	l := &lexer{
 		input:  input,
 		tokens: make([]token.Token, 0, len(input)/5),
@@ -27,10 +29,28 @@ func Parse(input string) (tokens []token.Token) {
 	// Tokenize the input.
 	l.lex()
 
-	return l.tokens
+	if len(l.errs) > 0 {
+		return l.tokens, l.errs
+	}
+	return l.tokens, nil
 }
 
-// A lexer lexes an input string into a slice of tokens.
+// ErrorList is a list of errors which implements the error interface. It does
+// so by returning the first error of the list from its Error method.
+type ErrorList []error
+
+// Error returns the first error of the list, or an empty string if the list is
+// empty.
+func (errs ErrorList) Error() string {
+	if len(errs) > 0 {
+		return errs[0].Error()
+	}
+	return ""
+}
+
+// A lexer lexes an input string into a slice of tokens. While breaking the
+// input into tokens, the next token is the longest sequence of characters that
+// form a valid token.
 type lexer struct {
 	// The input string.
 	input string
@@ -42,8 +62,11 @@ type lexer struct {
 	width int
 	// A slice of scanned tokens.
 	tokens []token.Token
-	// Index to the first token of the current line.
+	// Index to the first token of the current line; used by insertSemicolon.
 	line int
+	// A list of errors that occurred while lexing. It implements the error
+	// interface by returning the first error of the list from its Error method.
+	errs ErrorList
 }
 
 // lex lexes the input by repeatedly executing the active state function until
@@ -55,15 +78,10 @@ func (l *lexer) lex() {
 	}
 }
 
-// errorf emits an error token and terminates the scan by returning a nil state
-// function.
-func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	tok := token.Token{
-		Kind: token.Error,
-		Val:  fmt.Sprintf(format, args...),
-	}
-	l.tokens = append(l.tokens, tok)
-	return nil
+// errorf appends an error to the error list.
+func (l *lexer) errorf(format string, args ...interface{}) {
+	err := fmt.Errorf(format, args...)
+	l.errs = append(l.errs, err)
 }
 
 // emit emits a token of the specified token type and advances the token start

@@ -24,11 +24,13 @@ func (tok Token) String() string {
 //    * literals
 type Kind uint8
 
+// TODO(u): Evaluate if EOF should be removed, and if Invalid or Illegal should
+// be added.
+
 // Token types.
 const (
 	// Special tokens.
-	Error   Kind = iota // an error occured; value contains the error message.
-	EOF                 // end of file.
+	EOF     Kind = iota // end of file.
 	Comment             // line comment or general comment.
 
 	// Identifiers and literals.
@@ -144,7 +146,6 @@ const (
 // names specifies the name of each token type.
 var names = [...]string{
 	// Special.
-	Error:   "error",
 	EOF:     "EOF",
 	Comment: "comment",
 
