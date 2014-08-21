@@ -7,6 +7,9 @@
 // l.errorf and l.errs, and determine if any other state function than nil could
 // continue lexing.
 
+// TODO(u): Think about what the API and implementation of token positions would
+// look like.
+
 package lexer
 
 import (
