@@ -55,6 +55,7 @@ var golden = []struct {
 	{in: "'\\uff16'", want: token.Token{Kind: token.Rune, Val: "'\\uff16'"}},
 	{in: "'\\U0000ff16'", want: token.Token{Kind: token.Rune, Val: "'\\U0000ff16'"}},
 	{in: "`foobar`", want: token.Token{Kind: token.String, Val: "`foobar`"}},
+	{in: `"\a\b\f\n\r\t\v\\\""`, want: token.Token{Kind: token.String, Val: `"\a\b\f\n\r\t\v\\\""`}},
 	{in: "`foo\n\t                        bar`", want: token.Token{Kind: token.String, Val: "`foo\n\t                        bar`"}},
 	{in: "`\r`", want: token.Token{Kind: token.String, Val: "``"}},
 	{in: "`foo\r\nbar`", want: token.Token{Kind: token.String, Val: "`foo\nbar`"}},
