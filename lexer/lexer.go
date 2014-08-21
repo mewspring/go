@@ -69,17 +69,22 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 // emit emits a token of the specified token type and advances the token start
 // position.
 func (l *lexer) emit(kind token.Kind) {
+	l.emitCustom(kind, l.input[l.start:l.pos])
+}
+
+// emitCustom emits a custom token and advances the token start position.
+func (l *lexer) emitCustom(kind token.Kind, val string) {
 	if kind == token.EOF {
 		if l.pos < len(l.input) {
-			log.Fatalf("lexer.lexer.emit: unexpected eof; pos %d < len(input) %d.\n", l.pos, len(l.input))
+			log.Fatalf("lexer.lexer.emitCustom: unexpected eof; pos %d < len(input) %d.\n", l.pos, len(l.input))
 		}
 		if l.start != l.pos {
-			log.Fatalf("lexer.lexer.emit: invalid eof; pending input %q not handled.\n", l.input[l.start:])
+			log.Fatalf("lexer.lexer.emitCustom: invalid eof; pending input %q not handled.\n", l.input[l.start:])
 		}
 	}
 	tok := token.Token{
 		Kind: kind,
-		Val:  l.input[l.start:l.pos],
+		Val:  val,
 	}
 	l.tokens = append(l.tokens, tok)
 	l.start = l.pos

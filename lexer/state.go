@@ -150,12 +150,18 @@ func lexLineComment(l *lexer) stateFn {
 	for {
 		switch l.next() {
 		case eof:
-			l.emit(token.Comment)
+			// Strip carriage returns.
+			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
+			l.emitCustom(token.Comment, s)
+
 			// Emit an EOF and terminate the lexer with a nil state function.
 			l.emit(token.EOF)
 			return nil
 		case '\n':
-			l.emit(token.Comment)
+			// Strip carriage returns and trailing newline.
+			s := strings.Replace(l.input[l.start:l.pos-1], "\r", "", -1)
+			l.emitCustom(token.Comment, s)
+
 			// Update the index to the first token of the current line.
 			l.line = len(l.tokens)
 			return lexToken
@@ -181,7 +187,9 @@ func lexGeneralComment(l *lexer) stateFn {
 		l.line = len(l.tokens)
 	}
 
-	l.emit(token.Comment)
+	// Strip carriage returns.
+	s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
+	l.emitCustom(token.Comment, s)
 
 	return lexToken
 }
@@ -536,7 +544,9 @@ func lexRawString(l *lexer) stateFn {
 		case eof:
 			return l.errorf("unexpected eof in raw string literal")
 		case '`':
-			l.emit(token.String)
+			// Strip carriage returns.
+			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
+			l.emitCustom(token.String, s)
 			return lexToken
 		}
 	}
@@ -684,7 +694,7 @@ func consumeEscape(l *lexer, valid rune) error {
 //    * one of the operators and delimiters ++, --, ), ], or }
 //
 // ref: http://golang.org/ref/spec#Semicolons
-func insertSemicolon(l *lexer) {
+var insertSemicolon = func(l *lexer) {
 	insert := false
 	trailingComments := false
 	var pos int
