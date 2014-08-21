@@ -74,6 +74,8 @@ func (l *lexer) emit(kind token.Kind) {
 
 // emitCustom emits a custom token and advances the token start position.
 func (l *lexer) emitCustom(kind token.Kind, val string) {
+	// TODO(u): Remove this safety precaution once the lexer has been battle
+	// tested for a while.
 	if kind == token.EOF {
 		if l.pos < len(l.input) {
 			log.Fatalf("lexer.lexer.emitCustom: unexpected eof; pos %d < len(input) %d.\n", l.pos, len(l.input))
@@ -82,6 +84,7 @@ func (l *lexer) emitCustom(kind token.Kind, val string) {
 			log.Fatalf("lexer.lexer.emitCustom: invalid eof; pending input %q not handled.\n", l.input[l.start:])
 		}
 	}
+
 	tok := token.Token{
 		Kind: kind,
 		Val:  val,
