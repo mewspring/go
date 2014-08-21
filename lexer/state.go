@@ -770,8 +770,6 @@ func consumeEscape(l *lexer, valid rune) error {
 	return nil
 }
 
-// TODO(u): Add test case for insertSemicolon; ref: go/src/pkg/go/scanner/scanner_test.go:345
-
 // insertSemicolon inserts a semicolon if the correct conditions have been met.
 //
 // When the input is broken into tokens, a semicolon is automatically inserted
