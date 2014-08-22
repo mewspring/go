@@ -8,7 +8,6 @@ package lexer
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -148,12 +147,6 @@ func (l *lexer) next() (r rune) {
 // backup backs up one rune in the input. It can only be called once per call to
 // next.
 func (l *lexer) backup() {
-	// TODO(u): Remove this safety precaution once the lexer has been battle
-	// tested for a while.
-	if l.width == 0 {
-		log.Fatalln("lexer.lexer.backup: invalid width; no matching call to next.")
-	}
-
 	l.pos -= l.width
 	l.width = 0
 }
