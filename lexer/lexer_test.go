@@ -321,9 +321,9 @@ func TestParseErrors(t *testing.T) {
 		err  string
 		want token.Token
 	}{
-		{in: "\a", err: "syntax error: unexpected U+0007"},
-		{in: `#`, err: "syntax error: unexpected U+0023 '#'"},
-		{in: `…`, err: "syntax error: unexpected U+2026 '…'"},
+		{in: "\a", err: "syntax error: unexpected U+0007", want: token.Token{Kind: token.Invalid, Val: "\a"}},
+		{in: `#`, err: "syntax error: unexpected U+0023 '#'", want: token.Token{Kind: token.Invalid, Val: `#`}},
+		{in: `…`, err: "syntax error: unexpected U+2026 '…'", want: token.Token{Kind: token.Invalid, Val: `…`}},
 		{in: `' '`, want: token.Token{Kind: token.Rune, Val: "' '"}},
 		{in: `''`, err: "empty rune literal or unescaped ' in rune literal", want: token.Token{Kind: token.Rune | token.Invalid, Val: "''"}},
 		{in: `'12'`, err: "too many characters in rune literal", want: token.Token{Kind: token.Rune | token.Invalid, Val: "'12'"}},
@@ -412,10 +412,6 @@ func TestParseErrors(t *testing.T) {
 		}
 		if g.err != errstr {
 			t.Errorf("i=%d: error mismatch; expected %v, got %v.", i, g.err, errstr)
-			continue
-		}
-		zero := token.Token{}
-		if g.want == zero {
 			continue
 		}
 		if len(tokens) < 1 {
