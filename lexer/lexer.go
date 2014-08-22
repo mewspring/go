@@ -72,8 +72,8 @@ type lexer struct {
 // lex lexes the input by repeatedly executing the active state function until
 // it returns a nil state.
 func (l *lexer) lex() {
-	// lexSkipBOM is the initial state function of the lexer.
-	for state := lexSkipBOM; state != nil; {
+	// lexToken is the initial state function of the lexer.
+	for state := lexToken; state != nil; {
 		state = state(l)
 	}
 }
@@ -92,17 +92,6 @@ func (l *lexer) emit(kind token.Kind) {
 
 // emitCustom emits a custom token and advances the token start position.
 func (l *lexer) emitCustom(kind token.Kind, val string) {
-	// TODO(u): Remove this safety precaution once the lexer has been battle
-	// tested for a while.
-	if kind == token.EOF {
-		if l.pos < len(l.input) {
-			log.Fatalf("lexer.lexer.emitCustom: unexpected eof; pos %d < len(input) %d.\n", l.pos, len(l.input))
-		}
-		if l.start != l.pos {
-			log.Fatalf("lexer.lexer.emitCustom: invalid eof; pending input %q not handled.\n", l.input[l.start:])
-		}
-	}
-
 	tok := token.Token{
 		Kind: kind,
 		Val:  val,
@@ -111,8 +100,14 @@ func (l *lexer) emitCustom(kind token.Kind, val string) {
 	l.start = l.pos
 }
 
-// eof is the rune returned by next when no more input is available.
-const eof = -1
+const (
+	// eof is the rune returned by next when no more input is available.
+	eof = -1
+	// bom is the UTF-8-encoded byte order mark.
+	bom = '\ufeff'
+	// nul is the NUL character.
+	nul = '\x00'
+)
 
 // next consumes and returns the next rune of the input.
 func (l *lexer) next() (r rune) {
@@ -122,6 +117,29 @@ func (l *lexer) next() (r rune) {
 	}
 	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += l.width
+	switch r {
+	case bom:
+		// For compatibility with other tools, a compiler may ignore a
+		// UTF-8-encoded byte order mark (U+FEFF) if it is the first Unicode code
+		// point in the source text. A byte order mark may be disallowed anywhere
+		// else in the source.
+		//
+		// ref: http://golang.org/ref/spec#Source_code_representation
+		if l.pos == 3 {
+			// Ignore a UTF-8-encoded byte order mark (U+FEFF) if it is the first
+			// Unicode code point in the source text.
+			l.ignore()
+			return l.next()
+		}
+		// A byte order mark is disallowed anywhere else in the source.
+		l.errorf("illegal byte order mark")
+	case nul:
+		// For compatibility with other tools, a compiler may disallow the NUL
+		// character (U+0000) in the source text.
+		l.errorf("illegal NUL character")
+	case utf8.RuneError:
+		l.errorf("illegal UTF-8 encoding")
+	}
 	return r
 }
 

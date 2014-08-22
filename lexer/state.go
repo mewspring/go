@@ -1,12 +1,3 @@
-// TODO(u): Disallow the following:
-//    * BOMs in the middle of the source code.
-//    * NULL characters in the middle of the source code.
-//    * Invalid UTF-8 encoding in the middle of the source code.
-
-// TODO(u): Evaluate which errors that should terminate lexing. Search for
-// l.errorf and l.errs, and determine if any other state function than nil could
-// continue lexing.
-
 // TODO(u): Think about what the API and implementation of token positions would
 // look like.
 
@@ -40,28 +31,8 @@ const (
 // state function.
 type stateFn func(l *lexer) stateFn
 
-// lexSkipBOM skips the first UTF-8 BOM sequence. It is the initial state
-// function of the lexer.
-//
-// For compatibility with other tools, a compiler may ignore a UTF-8-encoded
-// byte order mark (U+FEFF) if it is the first Unicode code point in the source
-// text. A byte order mark may be disallowed anywhere else in the source.
-//
-// ref: http://golang.org/ref/spec#Source_code_representation
-func lexSkipBOM(l *lexer) stateFn {
-	switch l.next() {
-	case eof:
-		l.emit(token.EOF)
-		return nil
-	case '\uFEFF':
-		l.ignore()
-	default:
-		l.backup()
-	}
-	return lexToken
-}
-
-// lexToken lexes a token of the Go programming language.
+// lexToken lexes a token of the Go programming language. It is the initial
+// state function of the lexer.
 func lexToken(l *lexer) stateFn {
 	// Ignore white space characters (except newline).
 	l.ignoreRun(whitespace)
@@ -70,8 +41,7 @@ func lexToken(l *lexer) stateFn {
 	switch r {
 	case eof:
 		insertSemicolon(l)
-		// Emit an EOF and terminate the lexer with a nil state function.
-		l.emit(token.EOF)
+		// Terminate the lexer with a nil state function.
 		return nil
 	case '\n':
 		l.ignore()
@@ -145,8 +115,11 @@ func lexToken(l *lexer) stateFn {
 		return lexKeywordOrIdent
 	}
 
+	l.emit(token.Invalid)
+
+	// Append error but continue lexing.
 	l.errorf("syntax error: unexpected %v", pretty(r))
-	return nil
+	return lexToken
 }
 
 // pretty returns a pretty printed version of r.
@@ -161,6 +134,12 @@ func pretty(r rune) string {
 // otherwise.
 func isLetter(r rune) bool {
 	return unicode.IsLetter(r) || r == '_'
+}
+
+// isValid returns true if r is a valid Unicode code point in a Go source text,
+// and false otherwise.
+func isValid(r rune) bool {
+	return r != utf8.RuneError && r != bom && r != nul
 }
 
 // lexDivOrComment lexes a division operator (/), a division assignment operator
@@ -188,25 +167,30 @@ func lexDivOrComment(l *lexer) stateFn {
 
 // lexLineComment lexes a line comment. A line comment acts like a newline.
 func lexLineComment(l *lexer) stateFn {
+	kind := token.Comment
 	insertSemicolon(l)
 	for {
-		switch l.next() {
+		r := l.next()
+		switch r {
 		case eof:
 			// Strip carriage returns.
 			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
-			l.emitCustom(token.Comment, s)
+			l.emitCustom(kind, s)
 
-			// Emit an EOF and terminate the lexer with a nil state function.
-			l.emit(token.EOF)
+			// Terminate the lexer with a nil state function.
 			return nil
 		case '\n':
 			// Strip carriage returns and trailing newline.
 			s := strings.Replace(l.input[l.start:l.pos-1], "\r", "", -1)
-			l.emitCustom(token.Comment, s)
+			l.emitCustom(kind, s)
 
 			// Update the index to the first token of the current line.
 			l.line = len(l.tokens)
 			return lexToken
+		default:
+			if !isValid(r) {
+				kind |= token.Invalid
+			}
 		}
 	}
 }
@@ -215,25 +199,40 @@ func lexLineComment(l *lexer) stateFn {
 // or more newlines acts like a newline, otherwise it acts like a space.
 func lexGeneralComment(l *lexer) stateFn {
 	hasNewline := false
+	kind := token.Comment
 	for !strings.HasSuffix(l.input[l.start:l.pos], "*/") {
-		switch l.next() {
+		r := l.next()
+		switch r {
 		case eof:
 			insertSemicolon(l)
+
+			// Strip carriage returns.
+			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
+			l.emitCustom(token.Comment|token.Invalid, s)
+
+			// Terminate the lexer with a nil state function.
 			l.errorf("unexpected eof in comment")
 			return nil
 		case '\n':
 			hasNewline = true
+		default:
+			if !isValid(r) {
+				kind |= token.Invalid
+			}
 		}
 	}
 	if hasNewline {
 		insertSemicolon(l)
-		// Update the index to the first token of the current line.
-		l.line = len(l.tokens)
 	}
 
 	// Strip carriage returns.
 	s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
-	l.emitCustom(token.Comment, s)
+	l.emitCustom(kind, s)
+
+	if hasNewline {
+		// Update the index to the first token of the current line.
+		l.line = len(l.tokens)
+	}
 
 	return lexToken
 }
@@ -480,8 +479,11 @@ func lexDotOrNumber(l *lexer) stateFn {
 		// Early return for hexadecimal constant.
 		if l.accept("xX") {
 			if !l.acceptRun(hex) {
+				l.emit(token.Int | token.Invalid)
+
+				// Append error but continue lexing.
 				l.errorf("missing digits in hexadecimal constant")
-				return nil
+				return lexToken
 			}
 			l.emit(token.Int)
 			return lexToken
@@ -524,8 +526,11 @@ func lexDotOrNumber(l *lexer) stateFn {
 		l.accept("+-")
 
 		if !l.acceptRun(decimal) {
+			l.emit(token.Float | token.Invalid)
+
+			// Append error but continue lexing.
 			l.errorf("missing digits in floating-point exponent")
-			return nil
+			return lexToken
 		}
 	}
 
@@ -538,8 +543,11 @@ func lexDotOrNumber(l *lexer) stateFn {
 	if kind == token.Int {
 		if s := l.input[l.start:l.pos]; s[0] == '0' {
 			if pos := strings.IndexAny(s, "89"); pos != -1 {
+				l.emit(token.Int | token.Invalid)
+
+				// Append error but continue lexing.
 				l.errorf("invalid digit %q in octal constant", s[pos])
-				return nil
+				return lexToken
 			}
 		}
 	}
@@ -552,66 +560,105 @@ func lexDotOrNumber(l *lexer) stateFn {
 // been consumed.
 func lexRune(l *lexer) stateFn {
 	// Consume one or more characters enclosed in single quotes.
-	switch l.next() {
-	case eof:
-		// TODO(u): Insert semicolon?
-		l.errorf("unexpected eof in rune literal")
-		return nil
-	case '\n':
-		l.errorf("unexpected newline in rune literal")
-		return nil
-	case '\'':
-		l.errorf("empty rune literal or unescaped ' in rune literal")
-		return nil
-	case '\\':
-		// Consume backslash escape sequence.
-		err := consumeEscape(l, '\'')
-		if err != nil {
-			l.errs = append(l.errs, err)
-			return nil
-		}
-	}
+	kind := token.Rune
+	for i := 0; ; i++ {
+		r := l.next()
+		switch r {
+		case eof:
+			l.emit(token.Rune | token.Invalid)
 
-	// Consume closing single quote.
-	switch l.next() {
-	case eof:
-		// TODO(u): Insert semicolon?
-		l.errorf("unexpected eof in rune literal")
-		return nil
-	case '\n':
-		l.errorf("unexpected newline in rune literal")
-		return nil
-	case '\'':
-		l.emit(token.Rune)
-		return lexToken
-	default:
-		l.errorf("too many characters in rune literal")
-		return nil
+			insertSemicolon(l)
+
+			// Terminate the lexer with a nil state function.
+			l.errorf("unexpected eof in rune literal")
+			return nil
+		case '\n':
+			l.backup()
+			l.emit(token.Rune | token.Invalid)
+
+			insertSemicolon(l)
+			// Update the index to the first token of the current line.
+			l.line = len(l.tokens)
+
+			// Append error but continue lexing.
+			l.errorf("unexpected newline in rune literal")
+			return lexToken
+		case '\\':
+			// Consume backslash escape sequence.
+			err := consumeEscape(l, '\'')
+			if err != nil {
+				kind |= token.Invalid
+
+				// Append error but continue lexing the rune literal.
+				l.errs = append(l.errs, err)
+			}
+		case '\'':
+			switch i {
+			case 0:
+				l.emit(token.Rune | token.Invalid)
+
+				// Append error but continue lexing.
+				l.errorf("empty rune literal or unescaped ' in rune literal")
+				return lexToken
+			case 1:
+				l.emit(kind)
+				return lexToken
+			default:
+				l.emit(token.Rune | token.Invalid)
+
+				// Append error but continue lexing.
+				l.errorf("too many characters in rune literal")
+				return lexToken
+			}
+		default:
+			if !isValid(r) {
+				kind |= token.Invalid
+			}
+		}
 	}
 }
 
 // lexString lexes an interpreted string literal ("foo"). A double quote
 // character (") has already been consumed.
 func lexString(l *lexer) stateFn {
+	kind := token.String
 	for {
-		switch l.next() {
+		r := l.next()
+		switch r {
 		case eof:
-			// TODO(u): Insert semicolon?
+			l.emit(token.String | token.Invalid)
+
+			insertSemicolon(l)
+
+			// Terminate the lexer with a nil state function.
 			l.errorf("unexpected eof in string literal")
 			return nil
 		case '\n':
+			l.backup()
+			l.emit(token.String | token.Invalid)
+
+			insertSemicolon(l)
+			// Update the index to the first token of the current line.
+			l.line = len(l.tokens)
+
+			// Append error but continue lexing.
 			l.errorf("unexpected newline in string literal")
-			return nil
+			return lexToken
 		case '\\':
 			// Consume backslash escape sequence.
 			err := consumeEscape(l, '"')
 			if err != nil {
+				kind |= token.Invalid
+				// Append error but continue lexing the string literal.
 				l.errs = append(l.errs, err)
-				return nil
 			}
 		case '"':
-			l.emit(token.String)
+			l.emit(kind)
 			return lexToken
+		default:
+			if !isValid(r) {
+				kind |= token.Invalid
+			}
 		}
 	}
 }
@@ -619,17 +666,27 @@ func lexString(l *lexer) stateFn {
 // lexRawString lexes a raw string literal (`foo`). A back quote character (`)
 // has already been consumed.
 func lexRawString(l *lexer) stateFn {
+	kind := token.String
 	for {
-		switch l.next() {
+		r := l.next()
+		switch r {
 		case eof:
-			// TODO(u): Insert semicolon?
+			l.emit(token.String | token.Invalid)
+
+			insertSemicolon(l)
+
+			// Terminate the lexer with a nil state function.
 			l.errorf("unexpected eof in raw string literal")
 			return nil
 		case '`':
 			// Strip carriage returns.
 			s := strings.Replace(l.input[l.start:l.pos], "\r", "", -1)
-			l.emitCustom(token.String, s)
+			l.emitCustom(kind, s)
 			return lexToken
+		default:
+			if !isValid(r) {
+				kind |= token.Invalid
+			}
 		}
 	}
 }
