@@ -30,7 +30,7 @@ type Kind uint8
 const (
 	// Special tokens.
 	Invalid Kind = 1         // invalid token; e.g. an unterminated rune literal.
-	Comment      = iota << 1 // line comment or general comment.
+	Comment Kind = iota << 1 // line comment or general comment.
 
 	// Identifiers and literals.
 	// Identifier.
