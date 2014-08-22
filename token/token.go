@@ -22,16 +22,15 @@ func (tok Token) String() string {
 //    * keywords
 //    * operators and delimiters
 //    * literals
+//
+// A token is invalid if its least significant bit is set.
 type Kind uint8
-
-// TODO(u): Evaluate if EOF should be removed, and if Invalid or Illegal should
-// be added.
 
 // Token types.
 const (
 	// Special tokens.
-	EOF     Kind = iota // end of file.
-	Comment             // line comment or general comment.
+	Invalid Kind = 1         // invalid token; e.g. an unterminated rune literal.
+	Comment      = iota << 1 // line comment or general comment.
 
 	// Identifiers and literals.
 	// Identifier.
@@ -146,7 +145,7 @@ const (
 // names specifies the name of each token type.
 var names = [...]string{
 	// Special.
-	EOF:     "EOF",
+	Invalid: "invalid",
 	Comment: "comment",
 
 	// Identifier.
@@ -237,6 +236,10 @@ var names = [...]string{
 }
 
 func (kind Kind) String() string {
+	if kind&Invalid == 1 {
+		kind &^= Invalid
+		return "invalid " + names[kind]
+	}
 	return names[kind]
 }
 
