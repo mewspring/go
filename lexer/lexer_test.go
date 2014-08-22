@@ -412,7 +412,6 @@ func TestParseErrors(t *testing.T) {
 		}
 		if g.err != errstr {
 			t.Errorf("i=%d: error mismatch; expected %v, got %v.", i, g.err, errstr)
-			continue
 		}
 		if len(tokens) < 1 {
 			t.Errorf("i=%d: too few tokens; expected >= 1, got %d.", i, len(tokens))
