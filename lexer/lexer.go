@@ -22,7 +22,9 @@ import (
 // access to the entire list of errors.
 func Parse(input string) (tokens []token.Token, err error) {
 	l := &lexer{
-		input:  input,
+		input: input,
+		// The average token size of the Go standard library is approximately 5
+		// bytes.
 		tokens: make([]token.Token, 0, len(input)/5),
 	}
 
