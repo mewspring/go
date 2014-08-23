@@ -13,7 +13,10 @@ type Token struct {
 }
 
 func (tok Token) String() string {
-	return fmt.Sprintf("%v %q", tok.Kind, tok.Val)
+	if tok.Kind&Invalid == 1 {
+		return fmt.Sprintf("<invalid> %s", tok.Val)
+	}
+	return tok.Val
 }
 
 // Kind is the set of lexical token types of the Go programming language. It
@@ -145,7 +148,7 @@ const (
 // names specifies the name of each token type.
 var names = [...]string{
 	// Special.
-	Invalid: "invalid",
+	Invalid: "<invalid>",
 	Comment: "comment",
 
 	// Identifier.
@@ -238,7 +241,7 @@ var names = [...]string{
 func (kind Kind) String() string {
 	if kind&Invalid == 1 {
 		kind &^= Invalid
-		return "invalid " + names[kind]
+		return "<invalid> " + names[kind]
 	}
 	return names[kind]
 }
