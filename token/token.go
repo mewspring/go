@@ -13,7 +13,7 @@ type Token struct {
 }
 
 func (tok Token) String() string {
-	if tok.Kind&Invalid == 1 {
+	if !tok.IsValid() {
 		return fmt.Sprintf("<invalid> %s", tok.Val)
 	}
 	return tok.Val
@@ -239,11 +239,16 @@ var names = [...]string{
 }
 
 func (kind Kind) String() string {
-	if kind&Invalid == 1 {
+	if !kind.IsValid() {
 		kind &^= Invalid
 		return "<invalid> " + names[kind]
 	}
 	return names[kind]
+}
+
+// IsValid returns true if the token is lexically valid, and false otherwise.
+func (kind Kind) IsValid() bool {
+	return kind&Invalid == 0
 }
 
 // IsKeyword returns true if kind is a keyword, and false otherwise.
