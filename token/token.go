@@ -26,7 +26,7 @@ func (tok Token) String() string {
 //    * operators and delimiters
 //    * literals
 //
-// A token is invalid if its least significant bit is set.
+// A token is lexically invalid if its least significant bit is set.
 type Kind uint8
 
 // Token types.
