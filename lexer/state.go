@@ -1,6 +1,3 @@
-// TODO(u): Think about what the API and implementation of token positions would
-// look like.
-
 package lexer
 
 import (
@@ -47,7 +44,7 @@ func lexToken(l *lexer) stateFn {
 		l.ignore()
 		insertSemicolon(l)
 		// Update the index to the first token of the current line.
-		l.line = len(l.tokens)
+		l.first = len(l.tokens)
 		return lexToken
 	case '/':
 		return lexDivOrComment
@@ -185,7 +182,7 @@ func lexLineComment(l *lexer) stateFn {
 			l.emitCustom(kind, s)
 
 			// Update the index to the first token of the current line.
-			l.line = len(l.tokens)
+			l.first = len(l.tokens)
 			return lexToken
 		default:
 			if !isValid(r) {
@@ -231,7 +228,7 @@ func lexGeneralComment(l *lexer) stateFn {
 
 	if hasNewline {
 		// Update the index to the first token of the current line.
-		l.line = len(l.tokens)
+		l.first = len(l.tokens)
 	}
 
 	return lexToken
@@ -511,6 +508,7 @@ func lexDotOrNumber(l *lexer) stateFn {
 	if kind == token.Dot {
 		if strings.HasPrefix(l.input[l.pos:], "..") {
 			l.pos += 2
+			l.col += 2
 			l.width = 0
 			kind = token.Ellipsis
 		}
@@ -578,7 +576,7 @@ func lexRune(l *lexer) stateFn {
 
 			insertSemicolon(l)
 			// Update the index to the first token of the current line.
-			l.line = len(l.tokens)
+			l.first = len(l.tokens)
 
 			// Append error but continue lexing.
 			l.errorf("unexpected newline in rune literal")
@@ -639,7 +637,7 @@ func lexString(l *lexer) stateFn {
 
 			insertSemicolon(l)
 			// Update the index to the first token of the current line.
-			l.line = len(l.tokens)
+			l.first = len(l.tokens)
 
 			// Append error but continue lexing.
 			l.errorf("unexpected newline in string literal")
@@ -864,8 +862,12 @@ func consumeEscape(l *lexer, valid rune) error {
 var insertSemicolon = func(l *lexer) {
 	insert := false
 	trailingComments := false
+	tok := token.Token{
+		Kind: token.Semicolon,
+		Val:  ";",
+	}
 	var pos int
-	for pos = len(l.tokens) - 1; pos >= l.line; pos-- {
+	for pos = len(l.tokens) - 1; pos >= l.first; pos-- {
 		last := l.tokens[pos]
 		switch last.Kind {
 		case token.Comment:
@@ -874,26 +876,23 @@ var insertSemicolon = func(l *lexer) {
 			continue
 		case token.Ident:
 			// * an identifier
-			insert = true
 		case token.Int, token.Float, token.Imag, token.Rune, token.String:
 			// * an integer, floating-point, imaginary, rune, or string literal
-			insert = true
 		case token.Break, token.Continue, token.Fallthrough, token.Return:
 			// * one of the keywords break, continue, fallthrough, or return
-			insert = true
 		case token.Inc, token.Dec, token.Rparen, token.Rbrack, token.Rbrace:
 			// * one of the operators and delimiters ++, --, ), ], or }
-			insert = true
+		default:
+			return
 		}
+		insert = true
+		tok.Line = last.Line
+		tok.Col = last.Col + utf8.RuneCountInString(last.Val)
 		break
 	}
 
 	// Insert a semicolon.
 	if insert {
-		tok := token.Token{
-			Kind: token.Semicolon,
-			Val:  ";",
-		}
 		l.tokens = append(l.tokens, tok)
 
 		if trailingComments {

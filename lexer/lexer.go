@@ -59,12 +59,18 @@ type lexer struct {
 	start int
 	// Current position in the input.
 	pos int
-	// Width in byte of the last rune read with next.
+	// Width in byte of the last rune read with next; used by backup.
 	width int
+	// Start line number of the current token, and current line number in the
+	// input.
+	startLine, line int
+	// Start column number of the current token, and current and previous column
+	// number in the input.
+	startCol, col, prevCol int
 	// A slice of scanned tokens.
 	tokens []token.Token
 	// Index to the first token of the current line; used by insertSemicolon.
-	line int
+	first int
 	// A list of errors that occurred while lexing. It implements the error
 	// interface by returning the first error of the list from its Error method.
 	errs ErrorList
@@ -96,9 +102,12 @@ func (l *lexer) emitCustom(kind token.Kind, val string) {
 	tok := token.Token{
 		Kind: kind,
 		Val:  val,
+		Line: l.startLine + 1,
+		Col:  l.startCol + 1,
 	}
 	l.tokens = append(l.tokens, tok)
 	l.start = l.pos
+	l.startLine, l.startCol = l.line, l.col
 }
 
 const (
@@ -141,6 +150,14 @@ func (l *lexer) next() (r rune) {
 	case utf8.RuneError:
 		l.errorf("illegal UTF-8 encoding")
 	}
+	// TODO(u): Find a cleaner way to handle line:column tracking. The current
+	// implementation requires five different struct fields.
+	if r == '\n' {
+		l.line++
+		l.col, l.prevCol = 0, l.col
+	} else {
+		l.col++
+	}
 	return r
 }
 
@@ -149,6 +166,12 @@ func (l *lexer) next() (r rune) {
 func (l *lexer) backup() {
 	l.pos -= l.width
 	l.width = 0
+	if l.col == 0 {
+		l.line--
+		l.col = l.prevCol
+	} else {
+		l.col--
+	}
 }
 
 // accept consumes the next rune if it's from the valid set. It returns true if
@@ -178,6 +201,7 @@ func (l *lexer) acceptRun(valid string) bool {
 // ignore ignores any pending input read since the last token.
 func (l *lexer) ignore() {
 	l.start = l.pos
+	l.startLine, l.startCol = l.line, l.col
 }
 
 // ignoreRun ignores a run of valid runes.
