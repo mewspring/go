@@ -79,12 +79,7 @@ const (
 
 	// Operators and delimiters.
 	// Unary operators.
-	//Pos // +
-	//Neg // -
-	Not // !
-	//Comp  // ^
-	//Deref // *
-	//Addr  // &
+	Not   // !
 	Arrow // <-
 
 	// Operators with precedence 5.
