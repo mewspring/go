@@ -150,8 +150,13 @@ var names = [...]string{
 	Invalid: "<invalid>",
 	Comment: "comment",
 
-	// Identifier.
-	Ident: "identifier",
+	// Identifiers and literals.
+	Ident:  "identifier",
+	Int:    "int literal",
+	Float:  "float literal",
+	Imag:   "imaginary literal",
+	Rune:   "rune literal",
+	String: "string literal",
 
 	// Keywords.
 	Break:       "break",
@@ -228,13 +233,6 @@ var names = [...]string{
 	Colon:       ":",
 	Semicolon:   ";",
 	Ellipsis:    "...",
-
-	// Literals.
-	Int:    "int literal",
-	Float:  "float literal",
-	Imag:   "imaginary literal",
-	Rune:   "rune literal",
-	String: "string literal",
 }
 
 func (kind Kind) String() string {
