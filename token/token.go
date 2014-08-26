@@ -23,6 +23,9 @@ func (tok Token) String() string {
 	return tok.Val
 }
 
+// None is the zero value for Token, which represents a NONE option.
+var None = Token{}
+
 // Kind is the set of lexical token types of the Go programming language. It
 // contains four classes of tokens:
 //    * identifiers
