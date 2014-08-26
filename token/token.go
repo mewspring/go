@@ -16,11 +16,8 @@ type Token struct {
 	Col int
 }
 
-// None is the zero value for Token, which represents a NONE option.
-var None = Token{}
-
 func (tok Token) String() string {
-	if tok == None {
+	if tok.Kind == None {
 		return "NONE"
 	}
 	if !tok.IsValid() {
@@ -42,6 +39,7 @@ type Kind uint8
 // Token types.
 const (
 	// Special tokens.
+	None    Kind = 0         // NONE option for tokens.
 	Invalid Kind = 1         // invalid token; e.g. an unterminated rune literal.
 	Comment Kind = iota << 1 // line comment or general comment.
 
