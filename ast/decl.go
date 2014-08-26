@@ -90,7 +90,7 @@ type TypeSpec struct {
 	Type Type
 }
 
-// A FunctionDecl binds an identifier, the function name, to a function.
+// A FuncDecl binds an identifier, the function name, to a function.
 //
 //    FunctionDecl = "func" FunctionName ( Function | Signature ) .
 //    FunctionName = identifier .
@@ -98,7 +98,7 @@ type TypeSpec struct {
 //    FunctionBody = Block .
 //
 // ref: http://golang.org/ref/spec#Function_declarations
-type FunctionDecl struct {
+type FuncDecl struct {
 	// Function name.
 	Name token.Token
 	// Function signature.
@@ -128,8 +128,8 @@ type MethodDecl struct {
 
 // declNode ensures that only declaration nodes can be assigned to the Decl
 // interface.
-func (ConstDecl) declNode()    {}
-func (FunctionDecl) declNode() {}
-func (MethodDecl) declNode()   {}
-func (TypeDecl) declNode()     {}
-func (VarDecl) declNode()      {}
+func (ConstDecl) declNode()  {}
+func (FuncDecl) declNode()   {}
+func (MethodDecl) declNode() {}
+func (TypeDecl) declNode()   {}
+func (VarDecl) declNode()    {}
