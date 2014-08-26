@@ -20,6 +20,9 @@ type Token struct {
 var None = Token{}
 
 func (tok Token) String() string {
+	if tok == None {
+		return "NONE"
+	}
 	if !tok.IsValid() {
 		return fmt.Sprintf("<invalid> %s", tok.Val)
 	}
