@@ -16,15 +16,15 @@ type Token struct {
 	Col int
 }
 
+// None is the zero value for Token, which represents a NONE option.
+var None = Token{}
+
 func (tok Token) String() string {
 	if !tok.IsValid() {
 		return fmt.Sprintf("<invalid> %s", tok.Val)
 	}
 	return tok.Val
 }
-
-// None is the zero value for Token, which represents a NONE option.
-var None = Token{}
 
 // Kind is the set of lexical token types of the Go programming language. It
 // contains four classes of tokens:
