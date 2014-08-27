@@ -19,6 +19,22 @@ type Type interface {
 	typeNode()
 }
 
+// An ArrayType is a numbered sequence of elements of a single type, called the
+// element type. The number of elements is called the length and is never
+// negative.
+//
+//    ArrayType   = "[" ArrayLength "]" ElementType .
+//    ArrayLength = Expression .
+//    ElementType = Type .
+//
+// ref: http://golang.org/ref/spec#Array_types
+type ArrayType struct {
+	// Array length.
+	Len Expr
+	// Element type.
+	Type Type
+}
+
 // A FuncType denotes the set of all functions with the same parameter and
 // result types.
 //
@@ -54,4 +70,5 @@ type ParameterDecl struct {
 }
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
-func (FuncType) typeNode() {}
+func (ArrayType) typeNode() {}
+func (FuncType) typeNode()  {}
