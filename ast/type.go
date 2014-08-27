@@ -35,6 +35,32 @@ type ArrayType struct {
 	Type Type
 }
 
+// A StructType consists of zero or more field declarations.
+//
+//    StructType     = "struct" "{" { FieldDecl ";" } "}" .
+//    FieldDecl      = (IdentifierList Type | AnonymousField) [ Tag ] .
+//    AnonymousField = [ "*" ] TypeName .
+//    Tag            = string_lit .
+//
+// ref: http://golang.org/ref/spec#Struct_types
+type StructType []FieldDecl
+
+// A FieldDecl specifies the named elements of a struct, called fields, each of
+// which has a name and a type. Field names may be specified explicitly
+// (IdentifierList) or implicitly (AnonymousField).
+//
+// A field declared with a type but no explicit field name is an anonymous
+// field, also called an embedded field or an embedding of the type in the
+// struct. The unqualified type name acts as the field name.
+type FieldDecl struct {
+	// Field names; or nil.
+	Names []token.Token
+	// Field type.
+	Type Type
+	// Field tag.
+	Tag token.Token
+}
+
 // A FuncType denotes the set of all functions with the same parameter and
 // result types.
 //
@@ -70,5 +96,6 @@ type ParameterDecl struct {
 }
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
-func (ArrayType) typeNode() {}
-func (FuncType) typeNode()  {}
+func (ArrayType) typeNode()  {}
+func (StructType) typeNode() {}
+func (FuncType) typeNode()   {}
