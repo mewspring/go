@@ -61,6 +61,18 @@ type FieldDecl struct {
 	Tag token.Token
 }
 
+// A PointerType denotes the set of all pointers to variables of a given type,
+// called the base type of the pointer.
+//
+//    PointerType = "*" BaseType .
+//    BaseType    = Type .
+//
+// ref: http://golang.org/ref/spec#Pointer_types
+type PointerType struct {
+	// Pointer base type.
+	Type Type
+}
+
 // A FuncType denotes the set of all functions with the same parameter and
 // result types.
 //
@@ -96,6 +108,7 @@ type ParameterDecl struct {
 }
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
-func (ArrayType) typeNode()  {}
-func (StructType) typeNode() {}
-func (FuncType) typeNode()   {}
+func (ArrayType) typeNode()   {}
+func (StructType) typeNode()  {}
+func (PointerType) typeNode() {}
+func (FuncType) typeNode()    {}
