@@ -19,7 +19,7 @@ type Type interface {
 	typeNode()
 }
 
-// A Signature denotes the set of all functions with the same parameter and
+// A FuncType denotes the set of all functions with the same parameter and
 // result types.
 //
 // Within a list of parameters or results, the names (IdentifierList) must
@@ -35,7 +35,7 @@ type Type interface {
 //    ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
 //
 // ref: http://golang.org/ref/spec#Function_types
-type Signature struct {
+type FuncType struct {
 	// Zero or more parameters.
 	Params []ParameterDecl
 	// Zero or more results.
@@ -54,4 +54,4 @@ type ParameterDecl struct {
 }
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
-func (Signature) typeNode() {}
+func (FuncType) typeNode() {}

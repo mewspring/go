@@ -102,7 +102,7 @@ type FuncDecl struct {
 	// Function name.
 	Name token.Token
 	// Function signature.
-	Type Signature
+	Type FuncType
 	// Function body; or nil.
 	Body Block
 }
@@ -121,7 +121,7 @@ type MethodDecl struct {
 	// Method name.
 	Name token.Token
 	// Method signature.
-	Type Signature
+	Type FuncType
 	// Method body; or nil.
 	Body Block
 }
