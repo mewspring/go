@@ -1,3 +1,9 @@
+WIP
+---
+
+This project is a *work in progress*. The implementation is *incomplete* and
+subject to change. The documentation may be inaccurate.
+
 go
 ==
 
@@ -9,10 +15,13 @@ Documentation
 
 Documentation provided by GoDoc.
 
+- [ast][]: declares the types used to represent abstract syntax trees of Go
+source code.
 - [lexer][]: implements lexical tokenization of Go source code.
 - [token][]: defines constants representing the lexical tokens of the Go
 programming language.
 
+[ast]: http://godoc.org/github.com/mewlang/go/ast
 [lexer]: http://godoc.org/github.com/mewlang/go/lexer
 [token]: http://godoc.org/github.com/mewlang/go/token
 
