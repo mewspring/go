@@ -20,10 +20,12 @@ source code.
 - [lexer][]: implements lexical tokenization of Go source code.
 - [token][]: defines constants representing the lexical tokens of the Go
 programming language.
+- [types][]: declares the data types of the Go programming language.
 
 [ast]: http://godoc.org/github.com/mewlang/go/ast
 [lexer]: http://godoc.org/github.com/mewlang/go/lexer
 [token]: http://godoc.org/github.com/mewlang/go/token
+[types]: http://godoc.org/github.com/mewlang/go/types
 
 public domain
 -------------
