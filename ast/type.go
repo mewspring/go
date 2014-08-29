@@ -107,8 +107,30 @@ type ParameterDecl struct {
 	Type Type
 }
 
+// An InterfaceType specifies a method set called its interface. A variable of
+// interface type can store a value of any type with a method set that is any
+// superset of the interface. Such a type is said to implement the interface.
+//
+//    InterfaceType     = "interface" "{" { MethodSpec ";" } "}" .
+//    MethodSpec        = MethodName Signature | InterfaceTypeName .
+//    MethodName        = identifier .
+//    InterfaceTypeName = TypeName .
+//
+// ref: http://golang.org/ref/spec#Interface_types
+type InterfaceType []MethodSpec
+
+// A MethodSpec denotes the set of all methods with the same method name, and
+// parameter and result types.
+type MethodSpec struct {
+	// Method name (if Type != nil) or interface type name.
+	Name token.Token
+	// Method signature; or nil.
+	Type FuncType
+}
+
 // typeNode ensures that only type nodes can be assigned to the Type interface.
-func (ArrayType) typeNode()   {}
-func (StructType) typeNode()  {}
-func (PointerType) typeNode() {}
-func (FuncType) typeNode()    {}
+func (ArrayType) typeNode()     {}
+func (StructType) typeNode()    {}
+func (PointerType) typeNode()   {}
+func (FuncType) typeNode()      {}
+func (InterfaceType) typeNode() {}
