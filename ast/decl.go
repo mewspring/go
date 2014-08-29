@@ -86,7 +86,7 @@ type TypeDecl []TypeSpec
 type TypeSpec struct {
 	// Type name.
 	Name token.Token
-	// Type.
+	// Underlying type.
 	Type Type
 }
 
@@ -102,7 +102,7 @@ type FuncDecl struct {
 	// Function name.
 	Name token.Token
 	// Function signature.
-	Type FuncType
+	Sig FuncType
 	// Function body; or nil.
 	Body Block
 }
@@ -121,7 +121,7 @@ type MethodDecl struct {
 	// Method name.
 	Name token.Token
 	// Method signature.
-	Type FuncType
+	Sig FuncType
 	// Method body; or nil.
 	Body Block
 }

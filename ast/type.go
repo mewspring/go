@@ -32,7 +32,7 @@ type ArrayType struct {
 	// Array length.
 	Len Expr
 	// Element type.
-	Type Type
+	Elem Type
 }
 
 // A StructType consists of zero or more field declarations.
@@ -70,7 +70,7 @@ type FieldDecl struct {
 // ref: http://golang.org/ref/spec#Pointer_types
 type PointerType struct {
 	// Pointer base type.
-	Type Type
+	Base Type
 }
 
 // A FuncType denotes the set of all functions with the same parameter and
@@ -122,22 +122,22 @@ type InterfaceType []MethodSpec
 // A MethodSpec denotes the set of all methods with the same method name, and
 // parameter and result types.
 type MethodSpec struct {
-	// Method name (if Type != nil) or interface type name.
+	// Method name (if Sig != nil) or interface type name.
 	Name token.Token
 	// Method signature; or nil.
-	Type FuncType
+	Sig FuncType
 }
 
-// A SliceType denotes the set of all slices of arrays of its element type. A
-// slice is a descriptor for a contiguous segment of an underlying array and
-// provides access to a numbered sequence of elements from that array.
+// A SliceType describes the type of a slice which is a descriptor for a
+// contiguous segment of an underlying array and provides access to a numbered
+// sequence of elements from that array.
 //
 //    SliceType = "[" "]" ElementType .
 //
 // ref: http://golang.org/ref/spec#Slice_types
 type SliceType struct {
 	// Element type.
-	Type Type
+	Elem Type
 }
 
 // A MapType describes an unordered group of elements of one type, called the
@@ -150,10 +150,34 @@ type SliceType struct {
 // ref: http://golang.org/ref/spec#Map_types
 type MapType struct {
 	// Key type.
-	KeyType Type
+	Key Type
 	// Element type.
-	ElemType Type
+	Elem Type
 }
+
+// A ChanType describes the type of a channel which provides a mechanism for
+// concurrently executing functions to communicate by sending and receiving
+// values of a specified element type.
+//
+//    ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
+//
+// ref: http://golang.org/ref/spec#Channel_types
+type ChanType struct {
+	// Channel direction.
+	Dir ChanDir
+	// Element type.
+	Elem Type
+}
+
+// ChanDir is a bitfield which specifies the channel direction; send, receive or
+// bidirectional.
+type ChanDir uint8
+
+// Channel directions.
+const (
+	Send ChanDir = 1 << iota
+	Recv
+)
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
 func (ArrayType) typeNode()     {}
@@ -163,3 +187,4 @@ func (FuncType) typeNode()      {}
 func (InterfaceType) typeNode() {}
 func (SliceType) typeNode()     {}
 func (MapType) typeNode()       {}
+func (ChanType) typeNode()      {}
