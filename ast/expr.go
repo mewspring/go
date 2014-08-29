@@ -39,6 +39,8 @@ package ast
 //    TypeAssertion = "." "(" Type ")" .
 //    Call          = "(" [ ArgumentList [ "," ] ] ")" .
 //    ArgumentList  = ExpressionList [ "..." ] .
+//
+// ref: http://golang.org/ref/spec#Expressions
 type Expr interface {
 	// exprNode ensures that only expression nodes can be assigned to the Expr
 	// interface.

@@ -19,9 +19,9 @@ type Type interface {
 	typeNode()
 }
 
-// An ArrayType is a numbered sequence of elements of a single type, called the
-// element type. The number of elements is called the length and is never
-// negative.
+// An ArrayType describes a numbered sequence of elements of a single type,
+// called the element type. The number of elements is called the length and is
+// never negative.
 //
 //    ArrayType   = "[" ArrayLength "]" ElementType .
 //    ArrayLength = Expression .
@@ -128,9 +128,22 @@ type MethodSpec struct {
 	Type FuncType
 }
 
+// A SliceType denotes the set of all slices of arrays of its element type. A
+// slice is a descriptor for a contiguous segment of an underlying array and
+// provides access to a numbered sequence of elements from that array.
+//
+//    SliceType = "[" "]" ElementType .
+//
+// ref: http://golang.org/ref/spec#Slice_types
+type SliceType struct {
+	// Element type.
+	Type Type
+}
+
 // typeNode ensures that only type nodes can be assigned to the Type interface.
 func (ArrayType) typeNode()     {}
 func (StructType) typeNode()    {}
 func (PointerType) typeNode()   {}
 func (FuncType) typeNode()      {}
 func (InterfaceType) typeNode() {}
+func (SliceType) typeNode()     {}
