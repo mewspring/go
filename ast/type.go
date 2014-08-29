@@ -140,6 +140,21 @@ type SliceType struct {
 	Type Type
 }
 
+// A MapType describes an unordered group of elements of one type, called the
+// element type, indexed by a set of unique keys of another type, called the key
+// type.
+//
+//    MapType = "map" "[" KeyType "]" ElementType .
+//    KeyType = Type .
+//
+// ref: http://golang.org/ref/spec#Map_types
+type MapType struct {
+	// Key type.
+	KeyType Type
+	// Element type.
+	ElemType Type
+}
+
 // typeNode ensures that only type nodes can be assigned to the Type interface.
 func (ArrayType) typeNode()     {}
 func (StructType) typeNode()    {}
@@ -147,3 +162,4 @@ func (PointerType) typeNode()   {}
 func (FuncType) typeNode()      {}
 func (InterfaceType) typeNode() {}
 func (SliceType) typeNode()     {}
+func (MapType) typeNode()       {}
