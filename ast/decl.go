@@ -1,6 +1,9 @@
 package ast
 
-import "github.com/mewlang/go/token"
+import (
+	"github.com/mewlang/go/token"
+	"github.com/mewlang/go/types"
+)
 
 // An ImportDecl consists of zero or more import specifiers.
 //
@@ -67,7 +70,7 @@ type ValueSpec struct {
 	// Constant or variable names.
 	Names []token.Token
 	// Constant or variable type; or NONE.
-	Type Type
+	Type types.Type
 	// Constant or variable value expressions; or nil.
 	Vals []Expr
 }
@@ -78,17 +81,7 @@ type ValueSpec struct {
 //    TypeSpec = identifier Type .
 //
 // ref: http://golang.org/ref/spec#Type_declarations
-type TypeDecl []TypeSpec
-
-// A TypeSpec binds an identifier, the type name, to a new type that has the
-// same underlying type as an existing type, and operations defined for the
-// existing type are also defined for the new type.
-type TypeSpec struct {
-	// Type name.
-	Name token.Token
-	// Underlying type.
-	Type Type
-}
+type TypeDecl []types.Name
 
 // A FuncDecl binds an identifier, the function name, to a function.
 //
@@ -102,7 +95,7 @@ type FuncDecl struct {
 	// Function name.
 	Name token.Token
 	// Function signature.
-	Sig FuncType
+	Sig types.Func
 	// Function body; or nil.
 	Body Block
 }
@@ -117,11 +110,11 @@ type FuncDecl struct {
 // ref: http://golang.org/ref/spec#Method_declarations
 type MethodDecl struct {
 	// Receiver; must declare a single parameter.
-	Receiver ParameterDecl
+	Receiver types.Parameter
 	// Method name.
 	Name token.Token
 	// Method signature.
-	Sig FuncType
+	Sig types.Func
 	// Method body; or nil.
 	Body Block
 }
