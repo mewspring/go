@@ -180,6 +180,7 @@ const (
 )
 
 // typeNode ensures that only type nodes can be assigned to the Type interface.
+func (TypeSpec) typeNode()      {}
 func (ArrayType) typeNode()     {}
 func (StructType) typeNode()    {}
 func (PointerType) typeNode()   {}
