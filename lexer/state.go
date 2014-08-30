@@ -140,8 +140,8 @@ func isValid(r rune) bool {
 }
 
 // lexDivOrComment lexes a division operator (/), a division assignment operator
-// (/=), a line comment (//), or a general comment (/*). A slash character (/)
-// has already been consumed.
+// (/=), a line comment (//), or a block comment (/*). A slash character (/) has
+// already been consumed.
 func lexDivOrComment(l *lexer) stateFn {
 	switch l.next() {
 	case '=':
@@ -152,8 +152,8 @@ func lexDivOrComment(l *lexer) stateFn {
 		// Line comment (//).
 		return lexLineComment
 	case '*':
-		// General comment (/*).
-		return lexGeneralComment
+		// Block comment (/*).
+		return lexBlockComment
 	default:
 		// Division operator (/).
 		l.backup()
@@ -192,9 +192,9 @@ func lexLineComment(l *lexer) stateFn {
 	}
 }
 
-// lexGeneralComment lexes a general comment. A general comment containing one
-// or more newlines acts like a newline, otherwise it acts like a space.
-func lexGeneralComment(l *lexer) stateFn {
+// lexBlockComment lexes a block comment. A block comment containing one or more
+// newlines acts like a newline, otherwise it acts like a space.
+func lexBlockComment(l *lexer) stateFn {
 	hasNewline := false
 	kind := token.Comment
 	for !strings.HasSuffix(l.input[l.start:l.pos], "*/") {

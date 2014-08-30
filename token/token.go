@@ -41,7 +41,7 @@ const (
 	// Special tokens.
 	None    Kind = 0         // NONE option for tokens.
 	Invalid Kind = 1         // invalid token; e.g. an unterminated rune literal.
-	Comment Kind = iota << 1 // line comment or general comment.
+	Comment Kind = iota << 1 // line comment or block comment.
 
 	// Identifiers and literals.
 	// Identifier.
