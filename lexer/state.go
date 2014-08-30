@@ -11,6 +11,9 @@ import (
 	"github.com/mewlang/go/token"
 )
 
+// TODO(u): Optimize lexString, lexStringRaw, lexLineComment and lexBlockComment
+// using strings.IndexAny.
+
 const (
 	// whitespace specifies the white space characters (except newline), which
 	// include spaces (U+0020), horizontal tabs (U+0009), and carriage returns
