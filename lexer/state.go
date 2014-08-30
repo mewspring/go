@@ -115,16 +115,8 @@ func lexToken(l *lexer) stateFn {
 	l.emit(token.Invalid)
 
 	// Append error but continue lexing.
-	l.errorf("syntax error: unexpected %v", pretty(r))
+	l.errorf("syntax error: unexpected %#U", r)
 	return lexToken
-}
-
-// pretty returns a pretty printed version of r.
-func pretty(r rune) string {
-	if unicode.IsPrint(r) {
-		return fmt.Sprintf("%U %q", r, r)
-	}
-	return fmt.Sprintf("%U", r)
 }
 
 // isLetter returns true if r is a Unicode letter or an underscore, and false
@@ -791,7 +783,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				case valid:
 					return fmt.Errorf("too few digits in octal escape; expected 3, got %d", 1+i)
 				}
-				return fmt.Errorf("non-octal character %v in octal escape", pretty(r))
+				return fmt.Errorf("non-octal character %#U in octal escape", r)
 			}
 		}
 		s := l.input[l.pos-3 : l.pos]
@@ -810,7 +802,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				case valid:
 					return fmt.Errorf("too few digits in hex escape; expected 2, got %d", i)
 				}
-				return fmt.Errorf("non-hex character %v in hex escape", pretty(r))
+				return fmt.Errorf("non-hex character %#U in hex escape", r)
 			}
 		}
 	case 'u', 'U':
@@ -828,7 +820,7 @@ func consumeEscape(l *lexer, valid rune) error {
 				case valid:
 					return fmt.Errorf("too few digits in Unicode escape; expected %d, got %d", n, i)
 				}
-				return fmt.Errorf("non-hex character %v in Unicode escape", pretty(r))
+				return fmt.Errorf("non-hex character %#U in Unicode escape", r)
 			}
 		}
 		s := l.input[l.pos-n : l.pos]
@@ -838,12 +830,12 @@ func consumeEscape(l *lexer, valid rune) error {
 		}
 		r := rune(x)
 		if !utf8.ValidRune(r) {
-			return fmt.Errorf("invalid Unicode code point %v in escape sequence", pretty(r))
+			return fmt.Errorf("invalid Unicode code point %#U in escape sequence", r)
 		}
 	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', valid:
 		// Single-character escape.
 	default:
-		return fmt.Errorf("unknown escape sequence %v", pretty(r))
+		return fmt.Errorf("unknown escape sequence %#U", r)
 	}
 	return nil
 }
