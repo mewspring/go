@@ -55,7 +55,20 @@ type CompositeElement struct {
 	Val interface{}
 }
 
+// A FuncLit represents an anonymous function.
+//
+//    FunctionLit = "func" Function .
+//
+// ref: http://golang.org/ref/spec#Function_literals
+type FuncLit struct {
+	// Function signature.
+	Sig types.Func
+	// Function body, or nil.
+	Body Block
+}
+
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (BasicLit) isPrimaryExpr()     {}
 func (CompositeLit) isPrimaryExpr() {}
+func (FuncLit) isPrimaryExpr()      {}
