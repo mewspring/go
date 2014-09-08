@@ -77,9 +77,25 @@ type FuncLit struct {
 // ref: http://golang.org/ref/spec#Operands
 type OperandName token.Token
 
+// A MethodExpr yields a function equivalent to the specified method with an
+// explicit receiver as its first argument.
+//
+//    MethodExpr   = ReceiverType "." MethodName .
+//    ReceiverType = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
+//
+// ref: http://golang.org/ref/spec#Method_expressions
+type MethodExpr struct {
+	// Receiver type; holds a Name or a Pointer with a Name base type from the
+	// types package.
+	ReceiverType types.Type
+	// Method name.
+	Name token.Token
+}
+
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (BasicLit) isPrimaryExpr()     {}
 func (CompositeLit) isPrimaryExpr() {}
 func (FuncLit) isPrimaryExpr()      {}
 func (OperandName) isPrimaryExpr()  {}
+func (MethodExpr) isPrimaryExpr()   {}

@@ -107,8 +107,8 @@ type Struct []Field
 type Field struct {
 	// Field names, or nil.
 	Names []token.Token
-	// Field type; holds an anonymous field (a type name or a pointer to a type
-	// name) if Names is nil.
+	// Field type; holds an anonymous field (a Name or a Pointer with a Name base
+	// type) if Names is nil.
 	Type Type
 	// Field tag, or NONE.
 	Tag token.Token
