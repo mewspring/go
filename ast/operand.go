@@ -15,12 +15,14 @@ import (
 //
 //    Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
 //    Literal     = BasicLit | CompositeLit | FunctionLit .
-//    BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
-//    OperandName = identifier | QualifiedIdent.
 //
 // ref: http://golang.org/ref/spec#Operands
 
 // A BasicLit is an integer, floating-point, imaginary, rune, or string literal.
+//
+//    BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+//
+// ref: http://golang.org/ref/spec#Operands
 type BasicLit token.Token
 
 // A CompositeLit constructs a value for a struct, array, slice, or map and
@@ -67,8 +69,17 @@ type FuncLit struct {
 	Body Block
 }
 
+// An OperandName is a (possibly qualified) non-blank identifier denoting a
+// constant, variable, or function.
+//
+//    OperandName = identifier | QualifiedIdent.
+//
+// ref: http://golang.org/ref/spec#Operands
+type OperandName token.Token
+
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (BasicLit) isPrimaryExpr()     {}
 func (CompositeLit) isPrimaryExpr() {}
 func (FuncLit) isPrimaryExpr()      {}
+func (OperandName) isPrimaryExpr()  {}
