@@ -66,7 +66,6 @@ type BinaryExpr struct {
 //       PrimaryExpr TypeAssertion |
 //       PrimaryExpr Call .
 //
-//    Index         = "[" Expression "]" .
 //    Slice         = "[" ( [ Expression ] ":" [ Expression ] ) |
 //                        ( [ Expression ] ":" Expression ":" Expression )
 //                    "]" .
@@ -129,10 +128,25 @@ type CallExpr struct {
 //
 // ref: http://golang.org/ref/spec#Selectors
 type SelectorExpr struct {
-	// Primary expression.
+	// Expression.
 	Expr PrimaryExpr
-	// Selector identifier.
+	// Field or method selector.
 	Selector token.Token
+}
+
+// An IndexExpr denotes an element of an array, pointer to array, slice, string,
+// or map.
+//
+//    PrimaryExpr Index |
+//
+//    Index = "[" Expression "]" .
+//
+// ref: http://golang.org/ref/spec#Index_expressions
+type IndexExpr struct {
+	// Expression.
+	Expr PrimaryExpr
+	// Index expression.
+	Index Expr
 }
 
 // isExpr ensures that only expression nodes can be assigned to the Expr
@@ -142,9 +156,11 @@ func (BinaryExpr) isExpr()   {}
 func (Conversion) isExpr()   {}
 func (CallExpr) isExpr()     {}
 func (SelectorExpr) isExpr() {}
+func (IndexExpr) isExpr()    {}
 
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (Conversion) isPrimaryExpr()   {}
 func (CallExpr) isPrimaryExpr()     {}
 func (SelectorExpr) isPrimaryExpr() {}
+func (IndexExpr) isPrimaryExpr()    {}
