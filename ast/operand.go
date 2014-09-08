@@ -5,7 +5,7 @@ import (
 	"github.com/mewlang/go/types"
 )
 
-// An Operand denotes an elementary value in an expression. An operand may be a
+// Operands denote the elementary values in an expression. An operand may be a
 // literal, a (possibly qualified) non-blank identifier denoting a constant,
 // variable, or function, a method expression yielding a function, or a
 // parenthesized expression.
@@ -19,18 +19,13 @@ import (
 //    OperandName = identifier | QualifiedIdent.
 //
 // ref: http://golang.org/ref/spec#Operands
-type Operand interface {
-	// isOperand ensures that only operand nodes can be assigned to the Operand
-	// interface.
-	isOperand()
-}
 
 // A BasicLit is an integer, floating-point, imaginary, rune, or string literal.
 type BasicLit token.Token
 
 // A CompositeLit constructs a value for a struct, array, slice, or map and
-// creates a new value each time it is evaluated. They consist of the type of
-// the value followed by a brace-bound list of composite elements.
+// creates a new value each time it is evaluated. Composite literals consist of
+// the type of the value followed by a brace-bound list of composite elements.
 //
 //    CompositeLit  = LiteralType LiteralValue .
 //    LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
@@ -45,7 +40,8 @@ type BasicLit token.Token
 //
 // ref: http://golang.org/ref/spec#Composite_literals
 type CompositeLit struct {
-	// Literal type.
+	// Literal type; holds a Struct, Array, Slice, Map, or Name from the types
+	// package.
 	Type types.Type
 	// Literal values.
 	Vals []CompositeElement
@@ -53,14 +49,13 @@ type CompositeLit struct {
 
 // A CompositeElement may be a single expression or a key-value pair.
 type CompositeElement struct {
-	// Element key; or nil.
-	Key Expr
-	// Element value.
-	// TODO(u): Make sure that Val can contain a LiteralValue.
-	Val Expr
+	// Element key, or nil; holds an identifier (token.Token) or an Expr.
+	Key interface{}
+	// Element value; holds an Expr or a []CompositeElement.
+	Val interface{}
 }
 
-// isOperand ensures that only operand nodes can be assigned to the Operand
-// interface.
-func (BasicLit) isOperand()     {}
-func (CompositeLit) isOperand() {}
+// isPrimaryExpr ensures that only primary expression nodes can be assigned to
+// the PrimaryExpr interface.
+func (BasicLit) isPrimaryExpr()     {}
+func (CompositeLit) isPrimaryExpr() {}

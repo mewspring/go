@@ -23,7 +23,7 @@ type ImportDecl []ImportSpec
 //
 // ref: http://golang.org/ref/spec#Import_declarations
 type ImportSpec struct {
-	// Package name; or NONE.
+	// Package name, or NONE.
 	Name token.Token
 	// Import path.
 	Path token.Token
@@ -83,9 +83,9 @@ type VarDecl []ValueSpec
 type ValueSpec struct {
 	// Constant or variable names.
 	Names []token.Token
-	// Constant or variable type; or NONE.
+	// Constant or variable type, or NONE.
 	Type types.Type
-	// Constant or variable value expressions; or nil.
+	// Constant or variable value expressions, or nil.
 	Vals []Expr
 }
 
@@ -109,7 +109,7 @@ type FuncDecl struct {
 	Name token.Token
 	// Function signature.
 	Sig types.Func
-	// Function body; or nil.
+	// Function body, or nil.
 	Body Block
 }
 
@@ -128,7 +128,7 @@ type MethodDecl struct {
 	Name token.Token
 	// Method signature.
 	Sig types.Func
-	// Method body; or nil.
+	// Method body, or nil.
 	Body Block
 }
 

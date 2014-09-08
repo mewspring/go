@@ -78,7 +78,7 @@ type Name struct {
 //
 // ref: http://golang.org/ref/spec#Array_types
 type Array struct {
-	// Array length; holds an ast.ConstExpr.
+	// Array length; holds an ast.ConstExpr or an ellipsis (token.Token).
 	Len interface{}
 	// Element type.
 	Elem Type
@@ -105,12 +105,12 @@ type Struct []Field
 //
 // ref: http://golang.org/ref/spec#Struct_types
 type Field struct {
-	// Field names; or nil.
+	// Field names, or nil.
 	Names []token.Token
 	// Field type; holds an anonymous field (a type name or a pointer to a type
 	// name) if Names is nil.
 	Type Type
-	// Field tag; or NONE.
+	// Field tag, or NONE.
 	Tag token.Token
 }
 
@@ -154,7 +154,7 @@ type Func struct {
 
 // A Parameter declares a list of parameters or results.
 type Parameter struct {
-	// Parameter or result names; or nil.
+	// Parameter or result names, or nil.
 	Names []token.Token
 	// Parameter or result type.
 	Type Type
@@ -177,7 +177,7 @@ type Interface []Method
 type Method struct {
 	// Method name (if Sig != nil) or interface type name.
 	Name token.Token
-	// Method signature; or nil.
+	// Method signature, or nil.
 	Sig Func
 }
 

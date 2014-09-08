@@ -27,7 +27,7 @@ type Expr interface {
 type UnaryExpr struct {
 	// Unary operator.
 	Op token.Token
-	// Operand; holds a PrimaryExpr or an UnaryExpr.
+	// Unary operand; holds a PrimaryExpr or an UnaryExpr.
 	Expr Expr
 }
 
