@@ -57,6 +57,10 @@ const (
 // A Name binds an identifier, the type name, to a new type that has the same
 // underlying type as an existing type, and operations defined for the existing
 // type are also defined for the new type.
+//
+//    TypeSpec = identifier Type .
+//
+// ref: http://golang.org/ref/spec#Type_declarations
 type Name struct {
 	// Type name.
 	Name token.Token
@@ -74,7 +78,7 @@ type Name struct {
 //
 // ref: http://golang.org/ref/spec#Array_types
 type Array struct {
-	// Array length; holds an ast.Expr.
+	// Array length; holds an ast.ConstExpr.
 	Len interface{}
 	// Element type.
 	Elem Type
@@ -83,9 +87,6 @@ type Array struct {
 // A Struct consists of zero or more fields.
 //
 //    StructType     = "struct" "{" { FieldDecl ";" } "}" .
-//    FieldDecl      = (IdentifierList Type | AnonymousField) [ Tag ] .
-//    AnonymousField = [ "*" ] TypeName .
-//    Tag            = string_lit .
 //
 // ref: http://golang.org/ref/spec#Struct_types
 type Struct []Field
@@ -97,12 +98,19 @@ type Struct []Field
 // A field declared with a type but no explicit field name is an anonymous
 // field, also called an embedded field or an embedding of the type in the
 // struct. The unqualified type name acts as the field name.
+//
+//    FieldDecl      = (IdentifierList Type | AnonymousField) [ Tag ] .
+//    AnonymousField = [ "*" ] TypeName .
+//    Tag            = string_lit .
+//
+// ref: http://golang.org/ref/spec#Struct_types
 type Field struct {
 	// Field names; or nil.
 	Names []token.Token
-	// Field type.
+	// Field type; holds an anonymous field (a type name or a pointer to a type
+	// name) if Names is nil.
 	Type Type
-	// Field tag, or NONE.
+	// Field tag; or NONE.
 	Tag token.Token
 }
 

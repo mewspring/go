@@ -92,7 +92,6 @@ type ValueSpec struct {
 // A TypeDecl consists of zero or more type specifiers.
 //
 //    TypeDecl = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
-//    TypeSpec = identifier Type .
 //
 // ref: http://golang.org/ref/spec#Type_declarations
 type TypeDecl []types.Name
