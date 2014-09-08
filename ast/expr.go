@@ -72,8 +72,6 @@ type BinaryExpr struct {
 //                        ( [ Expression ] ":" Expression ":" Expression )
 //                    "]" .
 //    TypeAssertion = "." "(" Type ")" .
-//    Call          = "(" [ ArgumentList [ "," ] ] ")" .
-//    ArgumentList  = ExpressionList [ "..." ] .
 //
 // ref: http://golang.org/ref/spec#Primary_expressions
 type PrimaryExpr interface {
@@ -95,12 +93,42 @@ type Conversion struct {
 	Expr Expr
 }
 
+// A CallExpr is a function call or a method invocation.
+//
+//    PrimaryExpr Call .
+//
+//    Call          = "(" [ ArgumentList [ "," ] ] ")" .
+//    ArgumentList  = ExpressionList [ "..." ] .
+//
+// ref: http://golang.org/ref/spec#Calls
+//
+// Built-in functions are predeclared. They are called like any other function
+// but some of them accept a type instead of an expression as the first
+// argument.
+//
+//    BuiltinCall = identifier "(" [ BuiltinArgs [ "," ] ] ")" .
+//    BuiltinArgs = Type [ "," ArgumentList ] | ArgumentList .
+//
+// ref: http://golang.org/ref/spec#Built-in_functions
+type CallExpr struct {
+	// Function or method expression.
+	Func PrimaryExpr
+	// Function or method arguments; each argument is an Expr, except for when
+	// one of the built-in functions make or new is invoked, in which case the
+	// first argument is a types.Type.
+	Args []interface{}
+	// Specifies if the final argument is suffixed with an ellipsis.
+	HasEllipsis bool
+}
+
 // isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
 func (UnaryExpr) isExpr()  {}
 func (BinaryExpr) isExpr() {}
 func (Conversion) isExpr() {}
+func (CallExpr) isExpr()   {}
 
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (Conversion) isPrimaryExpr() {}
+func (CallExpr) isPrimaryExpr()   {}

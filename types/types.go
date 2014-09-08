@@ -13,7 +13,7 @@ import "github.com/mewlang/go/token"
 //    TypeLit  = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
 //               SliceType | MapType | ChannelType .
 //
-// http://golang.org/ref/spec#Types
+// ref: http://golang.org/ref/spec#Types
 type Type interface {
 	// isType ensures that only type nodes can be assigned to the Type interface.
 	isType()
