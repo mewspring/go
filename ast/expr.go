@@ -66,7 +66,6 @@ type BinaryExpr struct {
 //       PrimaryExpr TypeAssertion |
 //       PrimaryExpr Call .
 //
-//    Selector      = "." identifier .
 //    Index         = "[" Expression "]" .
 //    Slice         = "[" ( [ Expression ] ":" [ Expression ] ) |
 //                        ( [ Expression ] ":" Expression ":" Expression )
@@ -121,14 +120,31 @@ type CallExpr struct {
 	HasEllipsis bool
 }
 
+// A SelectorExpr denotes a field or method of a primary expression with an
+// identifier called the selector.
+//
+//    PrimaryExpr Selector .
+//
+//    Selector = "." identifier .
+//
+// ref: http://golang.org/ref/spec#Selectors
+type SelectorExpr struct {
+	// Primary expression.
+	Expr PrimaryExpr
+	// Selector identifier.
+	Selector token.Token
+}
+
 // isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
-func (UnaryExpr) isExpr()  {}
-func (BinaryExpr) isExpr() {}
-func (Conversion) isExpr() {}
-func (CallExpr) isExpr()   {}
+func (UnaryExpr) isExpr()    {}
+func (BinaryExpr) isExpr()   {}
+func (Conversion) isExpr()   {}
+func (CallExpr) isExpr()     {}
+func (SelectorExpr) isExpr() {}
 
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
-func (Conversion) isPrimaryExpr() {}
-func (CallExpr) isPrimaryExpr()   {}
+func (Conversion) isPrimaryExpr()   {}
+func (CallExpr) isPrimaryExpr()     {}
+func (SelectorExpr) isPrimaryExpr() {}
