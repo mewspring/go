@@ -4,10 +4,54 @@ import "github.com/mewlang/go/token"
 
 // An Expr specifies the computation of a value by applying operators and
 // functions to operands.
+type Expr interface {
+	// isExpr ensures that only expression nodes can be assigned to the Expr
+	// interface.
+	isExpr()
+}
+
+// An UnaryExpr combines an unary operator and an operand into an expression.
 //
-// Primary expressions
+//    UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
 //
-// Primary expressions are the operands for unary and binary expressions.
+//    unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
+//
+// ref: http://golang.org/ref/spec#Operators
+//
+// For integer operands, the unary operators +, -, and ^ are defined as follows:
+//
+//    +x                        is 0 + x
+//    -x   negation             is 0 - x
+//    ^x   bitwise complement   is m ^ x  with m = "all bits set to 1" for unsigned x
+//                                        and  m = -1 for signed x
+type UnaryExpr struct {
+	// Unary operator.
+	Op token.Token
+	// Operand; holds a PrimaryExpr or an UnaryExpr.
+	Expr Expr
+}
+
+// A BinaryExpr combines an operator and two operands into an expression.
+//
+//    Expression = UnaryExpr | Expression binary_op UnaryExpr .
+//
+//    binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+//    rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+//    add_op     = "+" | "-" | "|" | "^" .
+//    mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+//
+// ref: http://golang.org/ref/spec#Operators
+type BinaryExpr struct {
+	// Left-hand side operand.
+	Left Expr
+	// Operator.
+	Op token.Token
+	// Right-hand side operand; holds a PrimaryExpr or an UnaryExpr.
+	Right Expr
+}
+
+// A PrimaryExpr represents a primary expression. Primary expressions are the
+// operands for unary and binary expressions.
 //
 //    PrimaryExpr =
 //       Operand |
@@ -29,47 +73,10 @@ import "github.com/mewlang/go/token"
 //    ArgumentList  = ExpressionList [ "..." ] .
 //
 // ref: http://golang.org/ref/spec#Primary_expressions
-type Expr interface {
-	// isExpr ensures that only expression nodes can be assigned to the Expr
-	// interface.
-	isExpr()
-}
-
-// An UnaryExpr combines an unary operator and an operand into an expression.
-//
-// For integer operands, the unary operators +, -, and ^ are defined as follows:
-//
-//    +x                        is 0 + x
-//    -x   negation             is 0 - x
-//    ^x   bitwise complement   is m ^ x  with m = "all bits set to 1" for unsigned x
-//                                        and  m = -1 for signed x
-type UnaryExpr struct {
-	// Unary operator; or NONE.
-	Op token.Token
-	// Primary (if Op is NONE) or unary expression.
-	Expr Expr
-}
-
-// A BinaryExpr combines an operator and two operands into an expression.
-//
-//    Expression = UnaryExpr | Expression binary_op UnaryExpr .
-//    UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
-//
-//    binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
-//    rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
-//    add_op     = "+" | "-" | "|" | "^" .
-//    mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
-//
-//    unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-//
-// ref: http://golang.org/ref/spec#Operators
-type BinaryExpr struct {
-	// Left-hand side expression.
-	LHS Expr
-	// Operator.
-	Op token.Token
-	// Right-hand side expression.
-	RHS UnaryExpr
+type PrimaryExpr interface {
+	// isPrimaryExpr ensures that only primary expression nodes can be assigned
+	// to the PrimaryExpr interface.
+	isPrimaryExpr()
 }
 
 // isExpr ensures that only expression nodes can be assigned to the Expr
