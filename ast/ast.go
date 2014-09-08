@@ -33,5 +33,5 @@ type File struct {
 	// Import declarations.
 	Imps []ImportDecl
 	// Top level declarations.
-	Decls []Decl
+	Decls []TopLevelDecl
 }

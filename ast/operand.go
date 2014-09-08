@@ -20,9 +20,9 @@ import (
 //
 // ref: http://golang.org/ref/spec#Operands
 type Operand interface {
-	// operandNode ensures that only operand nodes can be assigned to the Operand
+	// isOperand ensures that only operand nodes can be assigned to the Operand
 	// interface.
-	operandNode()
+	isOperand()
 }
 
 // A BasicLit is an integer, floating-point, imaginary, rune, or string literal.
@@ -60,7 +60,7 @@ type CompositeElement struct {
 	Val Expr
 }
 
-// operandNode ensures that only operand nodes can be assigned to the Operand
+// isOperand ensures that only operand nodes can be assigned to the Operand
 // interface.
-func (BasicLit) operandNode()     {}
-func (CompositeLit) operandNode() {}
+func (BasicLit) isOperand()     {}
+func (CompositeLit) isOperand() {}

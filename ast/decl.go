@@ -8,8 +8,6 @@ import (
 // An ImportDecl consists of zero or more import specifiers.
 //
 //    ImportDecl = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-//    ImportSpec = [ "." | PackageName ] ImportPath .
-//    ImportPath = string_lit .
 //
 // ref: http://golang.org/ref/spec#Import_declarations
 type ImportDecl []ImportSpec
@@ -19,6 +17,11 @@ type ImportDecl []ImportSpec
 // exported identifiers of that package. The import names an identifier
 // (PackageName) to be used for access and an ImportPath that specifies the
 // package to be imported.
+//
+//    ImportSpec = [ "." | PackageName ] ImportPath .
+//    ImportPath = string_lit .
+//
+// ref: http://golang.org/ref/spec#Import_declarations
 type ImportSpec struct {
 	// Package name; or NONE.
 	Name token.Token
@@ -36,13 +39,24 @@ type ImportSpec struct {
 // and like the blank identifier it does not introduce a new binding.
 //
 //    Declaration  = ConstDecl | TypeDecl | VarDecl .
-//    TopLevelDecl = Declaration | FunctionDecl | MethodDecl .
 //
 // ref: http://golang.org/ref/spec#Declarations_and_scope
 type Decl interface {
-	// declNode ensures that only declaration nodes can be assigned to the Decl
+	// isDecl ensures that only declaration nodes can be assigned to the Decl
 	// interface.
-	declNode()
+	isDecl()
+}
+
+// A TopLevelDecl declares a constant, type, variable, function or method at the
+// top level scope.
+//
+//    TopLevelDecl = Declaration | FunctionDecl | MethodDecl .
+//
+// ref: http://golang.org/ref/spec#Declarations_and_scope
+type TopLevelDecl interface {
+	// isTopLevelDecl ensures that only top level declaration nodes can be
+	// assigned to the TopLevelDecl interface.
+	isTopLevelDecl()
 }
 
 // A ConstDecl consists of zero or more constant specifiers.
@@ -119,10 +133,16 @@ type MethodDecl struct {
 	Body Block
 }
 
-// declNode ensures that only declaration nodes can be assigned to the Decl
+// isDecl ensures that only declaration nodes can be assigned to the Decl
 // interface.
-func (ConstDecl) declNode()  {}
-func (FuncDecl) declNode()   {}
-func (MethodDecl) declNode() {}
-func (TypeDecl) declNode()   {}
-func (VarDecl) declNode()    {}
+func (ConstDecl) isDecl() {}
+func (TypeDecl) isDecl()  {}
+func (VarDecl) isDecl()   {}
+
+// isTopLevelDecl ensures that only top level declaration nodes can be assigned
+// to the TopLevelDecl interface.
+func (ConstDecl) isTopLevelDecl()  {}
+func (TypeDecl) isTopLevelDecl()   {}
+func (VarDecl) isTopLevelDecl()    {}
+func (FuncDecl) isTopLevelDecl()   {}
+func (MethodDecl) isTopLevelDecl() {}

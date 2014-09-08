@@ -15,9 +15,8 @@ import "github.com/mewlang/go/token"
 //
 // http://golang.org/ref/spec#Types
 type Type interface {
-	// typeNode ensures that only type nodes can be assigned to the Type
-	// interface.
-	typeNode()
+	// isType ensures that only type nodes can be assigned to the Type interface.
+	isType()
 }
 
 // Basic specifies a predeclared boolean, numeric, or string type of the Go
@@ -222,14 +221,14 @@ const (
 	Recv
 )
 
-// typeNode ensures that only type nodes can be assigned to the Type interface.
-func (Basic) typeNode()     {}
-func (Name) typeNode()      {}
-func (Array) typeNode()     {}
-func (Struct) typeNode()    {}
-func (Pointer) typeNode()   {}
-func (Func) typeNode()      {}
-func (Interface) typeNode() {}
-func (Slice) typeNode()     {}
-func (Map) typeNode()       {}
-func (Chan) typeNode()      {}
+// isType ensures that only type nodes can be assigned to the Type interface.
+func (Basic) isType()     {}
+func (Name) isType()      {}
+func (Array) isType()     {}
+func (Struct) isType()    {}
+func (Pointer) isType()   {}
+func (Func) isType()      {}
+func (Interface) isType() {}
+func (Slice) isType()     {}
+func (Map) isType()       {}
+func (Chan) isType()      {}

@@ -30,9 +30,9 @@ import "github.com/mewlang/go/token"
 //
 // ref: http://golang.org/ref/spec#Primary_expressions
 type Expr interface {
-	// exprNode ensures that only expression nodes can be assigned to the Expr
+	// isExpr ensures that only expression nodes can be assigned to the Expr
 	// interface.
-	exprNode()
+	isExpr()
 }
 
 // An UnaryExpr combines an unary operator and an operand into an expression.
@@ -72,7 +72,7 @@ type BinaryExpr struct {
 	RHS UnaryExpr
 }
 
-// exprNode ensures that only expression nodes can be assigned to the Expr
+// isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
-func (UnaryExpr) exprNode()  {}
-func (BinaryExpr) exprNode() {}
+func (UnaryExpr) isExpr()  {}
+func (BinaryExpr) isExpr() {}
