@@ -66,8 +66,6 @@ type BinaryExpr struct {
 //       PrimaryExpr TypeAssertion |
 //       PrimaryExpr Call .
 //
-//    TypeAssertion = "." "(" Type ")" .
-//
 // ref: http://golang.org/ref/spec#Primary_expressions
 type PrimaryExpr interface {
 	// isPrimaryExpr ensures that only primary expression nodes can be assigned
@@ -166,20 +164,37 @@ type SliceExpr struct {
 	Cap Expr
 }
 
+// A TypeAssertion asserts that an interface value holds a value of a given
+// type.
+//
+//    PrimaryExpr TypeAssertion .
+//
+//    TypeAssertion = "." "(" Type ")" .
+//
+// ref: http://golang.org/ref/spec#Type_assertions
+type TypeAssertion struct {
+	// Interface expression.
+	Expr PrimaryExpr
+	// Type.
+	Type types.Type
+}
+
 // isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
-func (UnaryExpr) isExpr()    {}
-func (BinaryExpr) isExpr()   {}
-func (Conversion) isExpr()   {}
-func (CallExpr) isExpr()     {}
-func (SelectorExpr) isExpr() {}
-func (IndexExpr) isExpr()    {}
-func (SliceExpr) isExpr()    {}
+func (UnaryExpr) isExpr()     {}
+func (BinaryExpr) isExpr()    {}
+func (Conversion) isExpr()    {}
+func (CallExpr) isExpr()      {}
+func (SelectorExpr) isExpr()  {}
+func (IndexExpr) isExpr()     {}
+func (SliceExpr) isExpr()     {}
+func (TypeAssertion) isExpr() {}
 
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
-func (Conversion) isPrimaryExpr()   {}
-func (CallExpr) isPrimaryExpr()     {}
-func (SelectorExpr) isPrimaryExpr() {}
-func (IndexExpr) isPrimaryExpr()    {}
-func (SliceExpr) isPrimaryExpr()    {}
+func (Conversion) isPrimaryExpr()    {}
+func (CallExpr) isPrimaryExpr()      {}
+func (SelectorExpr) isPrimaryExpr()  {}
+func (IndexExpr) isPrimaryExpr()     {}
+func (SliceExpr) isPrimaryExpr()     {}
+func (TypeAssertion) isPrimaryExpr() {}
