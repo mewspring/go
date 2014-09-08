@@ -29,6 +29,18 @@ type ImportSpec struct {
 	Path token.Token
 }
 
+// A TopLevelDecl declares a constant, type, variable, function or method at the
+// top level scope.
+//
+//    TopLevelDecl = Declaration | FunctionDecl | MethodDecl .
+//
+// ref: http://golang.org/ref/spec#Declarations_and_scope
+type TopLevelDecl interface {
+	// isTopLevelDecl ensures that only top level declaration nodes can be
+	// assigned to the TopLevelDecl interface.
+	isTopLevelDecl()
+}
+
 // A Decl binds a non-blank identifier to a function, method, label or package,
 // or one or more non-blank identifiers to the same number of constants, types,
 // or variables.
@@ -45,18 +57,6 @@ type Decl interface {
 	// isDecl ensures that only declaration nodes can be assigned to the Decl
 	// interface.
 	isDecl()
-}
-
-// A TopLevelDecl declares a constant, type, variable, function or method at the
-// top level scope.
-//
-//    TopLevelDecl = Declaration | FunctionDecl | MethodDecl .
-//
-// ref: http://golang.org/ref/spec#Declarations_and_scope
-type TopLevelDecl interface {
-	// isTopLevelDecl ensures that only top level declaration nodes can be
-	// assigned to the TopLevelDecl interface.
-	isTopLevelDecl()
 }
 
 // A ConstDecl consists of zero or more constant specifiers.
