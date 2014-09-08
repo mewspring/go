@@ -97,6 +97,15 @@ type ParenExpr struct {
 	Expr Expr
 }
 
+// isExpr ensures that only expression nodes can be assigned to the Expr
+// interface.
+func (BasicLit) isExpr()     {}
+func (CompositeLit) isExpr() {}
+func (FuncLit) isExpr()      {}
+func (OperandName) isExpr()  {}
+func (MethodExpr) isExpr()   {}
+func (ParenExpr) isExpr()    {}
+
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (BasicLit) isPrimaryExpr()     {}

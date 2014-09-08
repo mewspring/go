@@ -1,6 +1,9 @@
 package ast
 
-import "github.com/mewlang/go/token"
+import (
+	"github.com/mewlang/go/token"
+	"github.com/mewlang/go/types"
+)
 
 // An Expr specifies the computation of a value by applying operators and
 // functions to operands.
@@ -79,7 +82,25 @@ type PrimaryExpr interface {
 	isPrimaryExpr()
 }
 
+// A Conversion is an expression of the form T(x) where T is a type and x is an
+// expression that can be converted to type T.
+//
+//    Conversion = Type "(" Expression [ "," ] ")" .
+//
+// ref: http://golang.org/ref/spec#Conversions
+type Conversion struct {
+	// Result type.
+	Type types.Type
+	// Original expression.
+	Expr Expr
+}
+
 // isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
 func (UnaryExpr) isExpr()  {}
 func (BinaryExpr) isExpr() {}
+func (Conversion) isExpr() {}
+
+// isPrimaryExpr ensures that only primary expression nodes can be assigned to
+// the PrimaryExpr interface.
+func (Conversion) isPrimaryExpr() {}
