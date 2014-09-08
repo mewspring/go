@@ -92,6 +92,11 @@ type MethodExpr struct {
 	Name token.Token
 }
 
+// ParenExpr is a parenthesized expression.
+type ParenExpr struct {
+	Expr Expr
+}
+
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
 func (BasicLit) isPrimaryExpr()     {}
@@ -99,3 +104,4 @@ func (CompositeLit) isPrimaryExpr() {}
 func (FuncLit) isPrimaryExpr()      {}
 func (OperandName) isPrimaryExpr()  {}
 func (MethodExpr) isPrimaryExpr()   {}
+func (ParenExpr) isPrimaryExpr()    {}
