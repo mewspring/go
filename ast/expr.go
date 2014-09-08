@@ -66,9 +66,6 @@ type BinaryExpr struct {
 //       PrimaryExpr TypeAssertion |
 //       PrimaryExpr Call .
 //
-//    Slice         = "[" ( [ Expression ] ":" [ Expression ] ) |
-//                        ( [ Expression ] ":" Expression ":" Expression )
-//                    "]" .
 //    TypeAssertion = "." "(" Type ")" .
 //
 // ref: http://golang.org/ref/spec#Primary_expressions
@@ -149,6 +146,26 @@ type IndexExpr struct {
 	Index Expr
 }
 
+// A SliceExpr constructs a substring or slice from a string, array, pointer to
+// array, or slice. There are two variants: a simple form that specifies a low
+// and high bound, and a full form that also specifies a bound on the capacity.
+//
+//    PrimaryExpr Slice .
+//
+//    Slice         = "[" ( [ Expression ] ":" [ Expression ] ) |
+//                        ( [ Expression ] ":" Expression ":" Expression )
+//                    "]" .
+//
+// ref: http://golang.org/ref/spec#Slice_expressions
+type SliceExpr struct {
+	// Lower bound.
+	Low Expr
+	// Higher bound.
+	High Expr
+	// Capacity.
+	Cap Expr
+}
+
 // isExpr ensures that only expression nodes can be assigned to the Expr
 // interface.
 func (UnaryExpr) isExpr()    {}
@@ -157,6 +174,7 @@ func (Conversion) isExpr()   {}
 func (CallExpr) isExpr()     {}
 func (SelectorExpr) isExpr() {}
 func (IndexExpr) isExpr()    {}
+func (SliceExpr) isExpr()    {}
 
 // isPrimaryExpr ensures that only primary expression nodes can be assigned to
 // the PrimaryExpr interface.
@@ -164,3 +182,4 @@ func (Conversion) isPrimaryExpr()   {}
 func (CallExpr) isPrimaryExpr()     {}
 func (SelectorExpr) isPrimaryExpr() {}
 func (IndexExpr) isPrimaryExpr()    {}
+func (SliceExpr) isPrimaryExpr()    {}
