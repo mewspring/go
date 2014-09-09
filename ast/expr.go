@@ -132,7 +132,7 @@ type SelectorExpr struct {
 // An IndexExpr denotes an element of an array, pointer to array, slice, string,
 // or map.
 //
-//    PrimaryExpr Index |
+//    PrimaryExpr Index .
 //
 //    Index = "[" Expression "]" .
 //

@@ -29,7 +29,7 @@ type Package struct {
 // ref: http://golang.org/ref/spec#Source_file_organization
 type File struct {
 	// Package name.
-	Pkg token.Token
+	PkgName token.Token
 	// Import declarations.
 	Imps []ImportDecl
 	// Top level declarations.
