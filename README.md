@@ -7,6 +7,10 @@ subject to change. The documentation may be inaccurate.
 go
 ==
 
+[![Build Status](https://travis-ci.org/mewlang/go.svg?branch=master)](https://travis-ci.org/mewlang/go)
+[![Coverage Status](https://img.shields.io/coveralls/mewlang/go.svg)](https://coveralls.io/r/mewlang/go?branch=master)
+[![GoDoc](https://godoc.org/github.com/mewlang/go?status.svg)](https://godoc.org/github.com/mewlang/go)
+
 The aim of this repository is to gain insight into compiler design by
 implementing a compiler for the Go programming language.
 
